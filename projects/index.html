@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - John McKenna</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #fafafa;
+            --accent-color: #4299e1;
+            --border-color: #333;
+            --font-main: 'JetBrains Mono', monospace;
+            --card-bg: transparent;
+            --tag-bg: rgba(255, 255, 255, 0.05);
+            --tag-border: #333;
+        }
+
+        body.light-mode {
+            --bg-color: #fafafa;
+            --text-color: #0a0a0a;
+            --accent-color: #3182ce;
+            --border-color: #ddd;
+            --card-bg: #f8f8f8;
+            --tag-bg: rgba(0, 0, 0, 0.05);
+            --tag-border: #ccc;
+        }
+
+        /* --- BASE STYLES --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-main);
+            font-size: 1rem;
+            line-height: 1.5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 70ch;
+            width: 100%;
+            margin: 0 auto;
+            padding-bottom: 4rem;
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-bottom: 2rem;
+        }
+
+        /* --- NAV --- */
+        .nav-bar {
+            width: 100%;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* --- WIKIPEDIA STYLE TOC --- */
+        .toc-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: table;
+            margin-bottom: 3rem;
+            min-width: 50%;
+        }
+
+        .toc-title {
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            color: var(--text-color);
+        }
+
+        .toc-list {
+            list-style-type: decimal;
+            padding-left: 1.5rem;
+        }
+
+        .toc-list li {
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .toc-list a {
+            color: var(--text-color);
+            /* Default text color */
+            transition: color 0.2s ease;
+        }
+
+        /* Blue highlight on hover for outline */
+        .toc-list a:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        /* --- PROJECT CARDS --- */
+        .project-card {
+            position: relative;
+            /* Essential for the overlay link */
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            background: var(--card-bg);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            scroll-margin-top: 2rem;
+        }
+
+        .project-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        /* The link that covers the entire card (but sits below tags) */
+        .card-link-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            /* Base layer link */
+            text-decoration: none !important;
+            /* No underline on the invisible link */
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .project-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-color);
+            /* Ensure title inherits text color, not blue */
+        }
+
+        .project-card:hover .project-title {
+            color: var(--accent-color);
+            /* Highlight title on card hover */
+        }
+
+        .project-body {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        /* --- TAGS SECTION --- */
+        .tags-section {
+            position: relative;
+            z-index: 2;
+            /* Sits ABOVE the card-link-overlay */
+            border-top: 1px dashed var(--border-color);
+            padding-top: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .tags-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-right: 0.5rem;
+        }
+
+        .tag-badge {
+            font-size: 0.75rem;
+            color: var(--text-color);
+            background-color: var(--tag-bg);
+            border: 1px solid var(--tag-border);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            opacity: 0.8;
+            cursor: pointer;
+        }
+
+        .tag-badge:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            opacity: 1;
+            text-decoration: none;
+        }
+
+        /* --- THEME TOGGLE --- */
+        .floating-theme-toggle {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            background: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .floating-theme-toggle:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 600px) {
+            .toc-box {
+                width: 100%;
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="nav-bar">
+            <a href="../index.html">← Back to Home</a>
+        </div>
+
+        <h1>Projects & Tools</h1>
+        <p class="subtitle">Tools for quantifying value and optimizing risk.</p>
+
+        <!-- Wiki-Style Table of Contents -->
+        <div class="toc-box">
+            <div class="toc-title">Contents</div>
+            <ul class="toc-list">
+                <li><a href="#casino-promo">Casino Promotion Analyzer</a></li>
+                <li><a href="#balloon-betting">Balloon Betting Calculator</a></li>
+                <li><a href="#multi-casino">Multi-Casino Performance Tracker</a></li>
+                <li><a href="#trophy-case">Baccarat Trophy Case</a></li>
+                <li><a href="#shoe-analysis">Baccarat Shoe Time Analysis</a></li>
+                <li><a href="#restaurant">Restaurant Rewards Analyzer</a></li>
+                <li><a href="#deal-stack">Deal Stack Optimizer</a></li>
+                <li><a href="#value-dashboard">"Value." Financial Dashboard</a></li>
+            </ul>
+        </div>
+
+        <!-- Project List -->
+
+        <div id="casino-promo" class="project-card">
+            <a href="projects/arbcalc/projectpage.html" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Casino Promotion Analyzer</div>
+            </div>
+            <div class="project-body">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
+                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+                ex ea commodo consequat.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=promo-economics" class="tag-badge">Promotional Economics</a>
+                <a href="index.html?tag=ev-analysis" class="tag-badge">Expected Value Analysis</a>
+                <a href="index.html?tag=optimization" class="tag-badge">Bet Sizing Optimization</a>
+            </div>
+        </div>
+
+        <div id="balloon-betting" class="project-card">
+            <a href="ballooncalculator.html" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Balloon Betting Calculator</div>
+            </div>
+            <div class="project-body">
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
+                laborum.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=risk-profile" class="tag-badge">Risk Profile Transformation</a>
+                <a href="index.html?tag=sequential-wagering" class="tag-badge">Sequential Wagering Strategy</a>
+            </div>
+        </div>
+
+        <div id="multi-casino" class="project-card">
+            <!-- Placeholder link for now -->
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Multi-Casino Performance Tracker</div>
+            </div>
+            <div class="project-body">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl ac aliquet lacinia, nisl
+                nunc aliquet nisl, eget aliquam nisl nunc eget nisl.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=python" class="tag-badge">Python</a>
+                <a href="index.html?tag=data-analysis" class="tag-badge">Data Analysis</a>
+                <a href="index.html?tag=visualization" class="tag-badge">Visualization</a>
+            </div>
+        </div>
+
+        <div id="trophy-case" class="project-card">
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Baccarat Trophy Case</div>
+            </div>
+            <div class="project-body">
+                Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam
+                rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt
+                explicabo.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=python" class="tag-badge">Python</a>
+                <a href="index.html?tag=ocr" class="tag-badge">OCR (Tesseract)</a>
+                <a href="index.html?tag=data-structuring" class="tag-badge">Data Structuring</a>
+            </div>
+        </div>
+
+        <div id="shoe-analysis" class="project-card">
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Baccarat Shoe Time Analysis</div>
+            </div>
+            <div class="project-body">
+                Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni
+                dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=python" class="tag-badge">Python</a>
+                <a href="index.html?tag=stats" class="tag-badge">Statistical Analysis</a>
+                <a href="index.html?tag=hypothesis" class="tag-badge">Hypothesis Testing</a>
+            </div>
+        </div>
+
+        <div id="restaurant" class="project-card">
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Restaurant Rewards Analyzer</div>
+            </div>
+            <div class="project-body">
+                Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut
+                aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse
+                quam nihil molestiae consequatur.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=python" class="tag-badge">Python</a>
+                <a href="index.html?tag=data" class="tag-badge">Data Analysis</a>
+                <a href="index.html?tag=excel" class="tag-badge">Excel</a>
+            </div>
+        </div>
+
+        <div id="deal-stack" class="project-card">
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">Deal Stack Optimizer</div>
+            </div>
+            <div class="project-body">
+                At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum
+                deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non
+                provident.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=python" class="tag-badge">Python</a>
+                <a href="index.html?tag=scraping" class="tag-badge">Web Scraping</a>
+                <a href="index.html?tag=aggregation" class="tag-badge">Data Aggregation</a>
+            </div>
+        </div>
+
+        <div id="value-dashboard" class="project-card">
+            <a href="#" class="card-link-overlay"></a>
+            <div class="project-header">
+                <div class="project-title">"Value." Financial Dashboard</div>
+            </div>
+            <div class="project-body">
+                Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime
+                placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.
+            </div>
+            <div class="tags-section">
+                <span class="tags-label">Tags:</span>
+                <a href="index.html?tag=behavioral-economics" class="tag-badge">Behavioral Economics</a>
+                <a href="index.html?tag=metric-reframing" class="tag-badge">Metric Reframing</a>
+                <a href="index.html?tag=react" class="tag-badge">React</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Theme Toggle -->
+    <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+            viewBox="0 0 16 16">
+            <path
+                d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z" />
+        </svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+            viewBox="0 0 16 16" style="display:none;">
+            <path
+                d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z" />
+        </svg>
+    </button>
+
+    <script>
+        const themeToggle = document.getElementById('floating-theme-toggle');
+        const body = document.body;
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                body.classList.add('light-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+    </script>
+
+</body>
+
+</html>
