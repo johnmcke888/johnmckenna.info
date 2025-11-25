@@ -1,0 +1,1752 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Baccarat Visualizer (w/ Side Bets)</title> <style> * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f0f0f0;
+        padding: 15px;
+    }
+
+    .main-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    /* --- Updated Control panel styling --- */
+    .controls-container {
+        background: white;
+        border: 1px solid #ccc;
+        padding: 15px;
+        display: grid;
+        /* MODIFIED: New grid layout */
+        grid-template-areas:
+            "hand-tstart checkboxes   main-controls"
+            "predict     checkboxes   util-controls";
+        grid-template-columns: auto 300px 1fr; /* Col 1 for inputs, Col 2 for checks, Col 3 for buttons */
+        gap: 10px 15px; /* MODIFIED: Reduced row gap */
+        align-items: center; 
+    }
+    
+    /* MODIFIED: Stacked input groups */
+    .control-group {
+        display: flex;
+        /* MODIFIED: flex-direction: column; */ /* No longer stacking all */
+        align-items: center; /* MODIFIED: Align center */
+        gap: 2px;
+    }
+
+    /* NEW: Hand/tStart Group */
+    .control-group.hand-tstart-group {
+        grid-area: hand-tstart;
+        display: flex;
+        flex-direction: column; /* MODIFIED: Stack inputs over predictions */
+        gap: 10px; /* Space between Hand/tStart and Predictions */
+        align-items: center; /* MODIFIED: Center the items */
+    }
+    
+    .hand-tstart-inputs {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    
+    .input-sub-group {
+        display: flex;
+        flex-direction: column; /* Stack label and input */
+        align-items: flex-start;
+        gap: 2px;
+    }
+    /* --- End New --- */
+    
+    /* MODIFIED: Prediction group */
+    .control-group.prediction-group {
+        grid-area: predict;
+        flex-direction: row; /* Predictions are horizontal */
+        gap: 6px;
+        align-items: center; /* Center buttons vertically */
+        justify-content: center; /* MODIFIED: Center horizontally */
+    }
+    
+    /* MODIFIED: Checkbox group (no change, just context) */
+    .control-group.checkbox-group { 
+        grid-area: checkboxes;
+        height: 100%; 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        grid-template-rows: repeat(4, auto); 
+        gap: 5px 15px; 
+        padding: 0 15px;
+        border-left: 2px solid #eee;
+        border-right: 2px solid #eee;
+        margin-left: 0;
+        align-content: center; 
+        max-width: none; 
+    }
+
+
+    .control-group label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #333;
+        margin-left: 2px; /* Align with input */
+    }
+    
+    /* Hand Number Display */
+    #handNumberDisplay {
+        font-size: 18px;
+        font-weight: 700;
+        font-family: 'Courier New', monospace;
+        background: #f0f0f0;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 80px; /* MODIFIED: Reduced width */
+        text-align: center;
+    }
+
+    /* tStart Input */
+    #tStartInput {
+        width: 80px; /* MODIFIED: Reduced width */
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        padding: 8px;
+        /* MODIFIED: Style to match hand number */
+        border: 1px solid #ccc;
+        background-color: white;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+    }
+    
+    /* Remove number input arrows */
+    #tStartInput::-webkit-outer-spin-button,
+    #tStartInput::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    #tStartInput[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* --- NEW: Prediction Button Styles --- */
+    .prediction-button {
+        width: 40px;
+        height: 28px;
+        border-radius: 4px;
+        border: 2px solid;
+        background: transparent;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.1s ease-in-out;
+    }
+    #btnPredictP {
+        border-color: #0066cc;
+        color: #0066cc;
+    }
+    #btnPredictP.active {
+        background-color: #0066cc;
+        color: white;
+    }
+    #btnPredictB {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+    #btnPredictB.active {
+        background-color: #dc3545;
+        color: white;
+    }
+    #btnPredictT {
+        border-color: #28a745;
+        color: #28a745;
+    }
+    #btnPredictT.active {
+        background-color: #28a745;
+        color: white;
+    }
+    /* --- End New Styles --- */
+
+    .control-group.checkbox-group { 
+        grid-area: checkboxes;
+        height: 100%; 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        grid-template-rows: repeat(4, auto); 
+        gap: 5px 15px; 
+        padding: 0 15px;
+        border-left: 2px solid #eee;
+        border-right: 2px solid #eee;
+        margin-left: 0;
+        align-content: center; 
+        max-width: none; 
+    }
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .checkbox-item label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+        cursor: pointer;
+        white-space: nowrap; /* Prevent label wrapping */
+        margin-left: 0; /* Override default */
+    }
+    .checkbox-item input[type="checkbox"] {
+        transform: scale(1.2); /* Make checkbox slightly larger */
+        cursor: pointer;
+    }
+
+
+    .control-button {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        border: 2px solid;
+        cursor: pointer;
+        color: white;
+        flex: 1;
+        text-align: center;
+        border-radius: 4px; /* Added rounded corners */
+    }
+    
+    /* NEW: Button Groups */
+    .button-group {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .main-controls {
+        grid-area: main-controls;
+        /* MODIFIED: grid-row: 1 / 3; */ /* No longer spans 2 rows */
+        flex-direction: row; /* MODIFIED: Back to horizontal */
+        justify-content: center;
+    }
+    
+    .util-controls {
+        grid-area: util-controls;
+    }
+    /* --- End New --- */
+
+    #btnPlayer {
+        background-color: #0066cc;
+        border-color: #004a99;
+        width: 100%; /* Make full width */
+    }
+    #btnBanker {
+        background-color: #dc3545;
+        border-color: #a71d2a;
+        width: 100%; /* Make full width */
+    }
+    #btnTie {
+        background-color: #28a745;
+        border-color: #1e7e34;
+        width: 100%; /* Make full width */
+    }
+
+    /* NEW BUTTON STYLE */
+    #btnDealerChange {
+        background-color: #e5e7eb; /* Light Grey */
+        border-color: #d1d5db;
+        color: #1f2937; /* Dark text */
+    }
+
+    /* NEW: Import/Export/Clear Buttons */
+    .util-button {
+        color: white;
+    }
+    #btnImportShoe {
+        background-color: #9ca3af; /* Medium-Light Grey */
+        border-color: #6b7280;
+    }
+    #btnExportShoe {
+        background-color: #4b5563; /* Medium-Dark Grey */
+        border-color: #374151;
+    }
+    #btnClear {
+        background: #1f2937; /* Darkest Grey */
+        border-color: #111827;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+     #btnClear:hover {
+        background: #374151; /* Dark Grey Hover */
+     }
+    /* --- End New --- */
+
+    /* Container for all road visualizations */
+    .roads-grid-container {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr); 
+        grid-template-rows: auto auto auto;
+        gap: 15px;
+        grid-template-areas:
+            "main-road    main-road    main-road    main-road    main-road    main-road"
+            "big-eye-boy  big-eye-boy  small-road   small-road   cockroach    cockroach"
+            "bead-plate   bead-plate   bead-plate   tstart-graph tstart-graph tstart-graph";
+    }
+
+    .road-box {
+        background: white;
+        border: 1px solid #ccc;
+        padding: 15px;
+        height: 250px; 
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; 
+    }
+
+    .road-box h3 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #333;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+
+    /* --- MODIFIED: Grid area assignments --- */
+    #mainRoadContainer { 
+        grid-area: main-road; 
+        height: 240px; 
+    }
+    #bigEyeBoyContainer { 
+        grid-area: big-eye-boy; 
+        height: 200px; 
+        padding-top: 10px; /* Reduced padding to make space for scrollbar */
+        padding-bottom: 5px; /* Reduced padding to make space for scrollbar */
+    }
+    #smallRoadContainer { 
+        grid-area: small-road; 
+        height: 200px; 
+        padding-top: 10px; /* Reduced padding to make space for scrollbar */
+        padding-bottom: 5px; /* Reduced padding to make space for scrollbar */
+    }
+    #cockroachRoadContainer { 
+        grid-area: cockroach; 
+        height: 200px; 
+        padding-top: 10px; /* Reduced padding to make space for scrollbar */
+        padding-bottom: 5px; /* Reduced padding to make space for scrollbar */
+    }
+    #beadPlateContainer { 
+        grid-area: bead-plate; 
+        padding-bottom: 8px;
+    }
+    #tStartGraphContainer { 
+        grid-area: tstart-graph; 
+        padding-bottom: 8px;
+    }
+    /* --- End New --- */
+
+    /* --- Updated Bead Plate Grid --- */
+    .bead-plate-grid {
+        display: grid;
+        grid-template-rows: repeat(6, 26px);
+        grid-auto-flow: column;
+        grid-auto-columns: 26px;
+        gap: 2px;
+        overflow-x: auto; 
+        overflow-y: hidden;
+        flex-grow: 1; 
+        border: 1px solid #eee;
+        padding: 2px;
+        background: #fdfdfd;
+    }
+    
+    .bead-cell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative; 
+    }
+
+    .bead {
+        width: 22px; 
+        height: 22px;
+        position: relative;
+        border-radius: 50%;
+        font-weight: 700;
+        color: white;
+        border: 1px solid rgba(0,0,0,0.2);
+        flex-shrink: 0; 
+    }
+
+    .bead span {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px; 
+        text-shadow: 0 0 2px rgba(0,0,0,0.7);
+    }
+    
+    .bead.player { background-color: #0066cc; }
+    .bead.banker { background-color: #dc3545; }
+    .bead.tie { background-color: #28a745; }
+
+    /* --- Big Road Styles --- */
+    .main-road-grid {
+        display: grid;
+        grid-template-rows: repeat(6, 26px);
+        grid-auto-flow: column;
+        grid-auto-columns: 26px;
+        gap: 2px;
+        padding: 2px;
+        overflow-x: auto; 
+        overflow-y: hidden;
+        flex-grow: 1; 
+        border: 1px solid #eee;
+        background: #fdfdfd;
+    }
+
+    .big-road-cell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative; 
+    }
+
+    .big-road-circle {
+        width: 22px; 
+        height: 22px;
+        border-radius: 50%;
+        background: transparent;
+        border: 3px solid;
+    }
+
+    .big-road-circle.player {
+        border-color: #0066cc;
+    }
+    
+    .big-road-circle.banker {
+        border-color: #dc3545;
+    }
+
+    .tie-marker {
+        position: absolute;
+        width: 26px; 
+        height: 3px;
+        background-color: #28a745;
+        transform: rotate(-45deg);
+    }
+
+    .tie-marker-count {
+        position: absolute;
+        bottom: -3px;
+        right: -3px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #333;
+        background: #f0f0f0;
+        padding: 0 3px;
+        border-radius: 3px;
+    }
+
+    /* --- Derived Road Styles --- */
+
+    .derived-road-grid {
+        display: grid;
+        grid-template-rows: repeat(6, 20px); 
+        grid-auto-flow: column;
+        grid-auto-columns: 20px;
+        gap: 1px; 
+        padding: 1px;
+        overflow-x: auto; 
+        overflow-y: hidden;
+        flex-grow: 1; 
+        border: 1px solid #eee;
+        background: #fdfdfd;
+    }
+
+    .derived-road-cell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative; 
+    }
+
+    .derived-road-symbol {
+        width: 18px;
+        height: 18px;
+    }
+
+    .derived-road-symbol.beb {
+        border-radius: 50%;
+        border: 2px solid;
+    }
+    .derived-road-symbol.beb.red { border-color: #dc3545; }
+    .derived-road-symbol.beb.blue { border-color: #0066cc; }
+
+    .derived-road-symbol.sr {
+        border-radius: 50%;
+        border: 1px solid;
+    }
+    .derived-road-symbol.sr.red { 
+        background-color: #dc3545;
+        border-color: #a71d2a;
+    }
+    .derived-road-symbol.sr.blue { 
+        background-color: #0066cc;
+        border-color: #004a99;
+    }
+    
+    .derived-road-symbol.cr {
+        width: 19px; 
+        height: 4px;
+        transform: rotate(-45deg);
+    }
+    .derived-road-symbol.cr.red { background-color: #dc3545; }
+    .derived-road-symbol.cr.blue { background-color: #0066cc; }
+    
+    /* --- NEW: tStart Graph Styles (MODIFIED) --- */
+    .t-start-graph-outer-wrapper {
+        display: flex;
+        flex-direction: row;
+        flex-grow: 1;
+        overflow: hidden;
+        min-height: 150px;
+    }
+
+    .t-start-y-axis {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #666;
+        text-align: right;
+        padding-right: 5px;
+        padding-bottom: 27px; 
+        font-family: 'Courier New', monospace;
+    }
+
+    .t-start-graph-grid {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch; 
+        flex-grow: 1;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-left: 1px solid #eee;
+        background: #fdfdfd;
+        padding: 0 2px 0 2px;
+    }
+
+    .t-start-column {
+        display: flex;
+        flex-direction: column;
+        width: 22px; 
+        margin-right: 2px; 
+        flex-shrink: 0;
+        justify-content: space-between;
+    }
+
+    .t-start-bar-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end; 
+        height: 100%; 
+    }
+
+    .t-start-bar {
+        width: 100%;
+        background-color: #ccc; 
+        transition: height 0.2s ease;
+    }
+    
+    .t-start-label-group {
+        flex-shrink: 0;
+        height: 27px; 
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+    
+    .t-start-bonus-payout {
+        height: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #000;
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        line-height: 12px;
+        overflow: hidden;
+    }
+
+    .t-start-x-label {
+        flex-shrink: 0;
+        height: 15px;
+        font-size: 10px;
+        color: #666;
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        line-height: 15px;
+        overflow: hidden;
+    }
+
+    .t-start-dealer-column {
+        display: flex;
+        flex-direction: column;
+        width: 2px;
+        margin: 0 1px; 
+        flex-shrink: 0;
+        justify-content: space-between; 
+    }
+
+    .t-start-dealer-line-bar {
+        width: 100%;
+        height: 100%; 
+        background-color: #000;
+        z-index: 30;
+    }
+    
+    .t-start-dealer-line-label-spacer {
+        flex-shrink: 0;
+        height: 27px; 
+    }
+    /* --- End New --- */
+
+    /* --- NEW: Side Bet Payout Number Styles --- */
+    .bead-bonus-payout {
+        position: absolute;
+        bottom: -2px; 
+        left: -2px; 
+        font-size: 10px; 
+        font-weight: 700;
+        line-height: 1;
+        z-index: 10;
+        color: #000;
+        text-shadow: none; 
+        width: 14px;
+        height: 14px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #999;
+    }
+    
+    .big-road-bonus-payout {
+        position: absolute;
+        bottom: -2px; 
+        left: -2px; 
+        font-size: 10px; 
+        font-weight: 700;
+        line-height: 1;
+        z-index: 10;
+        color: #000;
+        width: 14px;
+        height: 14px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #999;
+    }
+    /* --- End New Styles --- */
+    
+    /* --- NEW: Prediction Badge Styles --- */
+    .prediction-badge {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.3);
+        z-index: 10;
+    }
+    .prediction-badge.correct {
+        background-color: #28a745; /* Tie Green */
+    }
+    .prediction-badge.incorrect {
+        background-color: #dc3545; /* Banker Red */
+    }
+    /* --- End New Styles --- */
+
+
+    /* --- NEW: Dealer Change Line Styles --- */
+    .dealer-change-line {
+        position: absolute;
+        bottom: -1px; 
+        left: 0;
+        width: 100%; 
+        background-color: #000;
+        z-index: 20;
+    }
+    .bead-cell .dealer-change-line,
+    .big-road-cell .dealer-change-line {
+        height: 2px;
+    }
+    .derived-road-cell .dealer-change-line {
+        height: 1px;
+    }
+    /* --- End New Styles --- */
+
+
+    /* --- Custom Confirm Modal --- */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none; 
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .modal-content p {
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    .modal-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 700;
+    }
+    #modalConfirm {
+        background-color: #dc3545;
+        color: white;
+    }
+    #modalCancel {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+</head> <body>
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-content">
+        <p id="modalMessage">Are you sure?</p>
+        <div class="modal-buttons">
+            <button class="modal-button" id="modalCancel">Cancel</button>
+            <button class="modal-button" id="modalConfirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="main-container">
+    
+    <!-- MODIFIED: Controls Layout -->
+    <div class="controls-container">
+        <!-- Col 1: Hand / tStart -->
+        <div class="control-group hand-tstart-group">
+            <div class="hand-tstart-inputs">
+                <div class="input-sub-group">
+                    <label for="handNumberDisplay">Hand:</label>
+                    <div id="handNumberDisplay">1</div>
+                </div>
+                <div class="input-sub-group">
+                    <label for="tStartInput">tStart:</label>
+                    <input type="number" id="tStartInput" placeholder="15">
+                </div>
+            </div>
+        </div>
+
+        <!-- Col 1: Predict -->
+        <!-- NEW: Prediction Group -->
+        <div class="control-group prediction-group">
+            <button class="prediction-button" id="btnPredictP">P</button>
+            <button class="prediction-button" id="btnPredictB">B</button>
+            <button class="prediction-button" id="btnPredictT">T</button>
+        </div>
+        
+        <!-- Col 2: Checkboxes -->
+        <div class="control-group checkbox-group">
+             <div class="checkbox-item">
+                <input type="checkbox" id="checkPPair">
+                <label for="checkPPair">P Pair</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkBPair">
+                <label for="checkBPair">B Pair</label>
+            </div>
+             <div class="checkbox-item">
+                <input type="checkbox" id="checkSinglePP">
+                <label for="checkSinglePP">Single PP</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkDoublePP">
+                <label for="checkDoublePP">Double PP</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkBonus6">
+                <label for="checkBonus6">Bonus 6</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkBonus7">
+                <label for="checkBonus7">Bonus 7</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkBonus8">
+                <label for="checkBonus8">Bonus 8</label>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="checkBonus9">
+                <label for="checkBonus9">Bonus 9</label>
+            </div>
+        </div>
+        
+        <!-- Col 3: Main Buttons (Stacked) -->
+        <div class="button-group main-controls">
+            <div class="control-button" id="btnPlayer">Player</div>
+            <div class="control-button" id="btnBanker">Banker</div>
+            <div class="control-button" id="btnTie">Tie</div>
+        </div>
+        
+        <!-- Col 3: Util Buttons -->
+        <div class="button-group util-controls">
+            <div class="control-button" id="btnDealerChange">Dealer</div>
+            <div class="control-button util-button" id="btnImportShoe">Import</div>
+            <div class="control-button util-button" id="btnExportShoe">Export</div>
+            <button id="btnClear" class="control-button">Clear</button>
+        </div>
+
+        <!-- Hidden file input for import -->
+        <input type="file" id="fileImporter" accept=".json" style="display: none;">
+    </div>
+    <!-- END MODIFIED Controls -->
+
+    <div class="roads-grid-container">
+        
+        <div class="road-box" id="mainRoadContainer">
+            <h3>Big Road</h3>
+            <div class="main-road-grid" id="mainRoadGrid"></div>
+        </div>
+
+        <div class="road-box" id="bigEyeBoyContainer">
+            <h3>Big Eye Boy</h3>
+            <div class="derived-road-grid" id="bigEyeBoyGrid"></div>
+        </div>
+
+        <div class="road-box" id="smallRoadContainer">
+            <h3>Small Road</h3>
+            <div class="derived-road-grid" id="smallRoadGrid"></div>
+        </div>
+
+        <div class="road-box" id="cockroachRoadContainer">
+            <h3>Cockroach Road</h3>
+            <div class="derived-road-grid" id="cockroachRoadGrid"></div>
+        </div>
+
+        <div class="road-box" id="beadPlateContainer">
+            <h3>Bead Plate</h3>
+            <div class="bead-plate-grid" id="beadPlateGrid"></div>
+        </div>
+
+        <div class="road-box" id="tStartGraphContainer">
+            <h3>tStart Chart</h3>
+            <div class="t-start-graph-outer-wrapper">
+                <div class="t-start-y-axis">
+                    <span>20</span>
+                    <span>15</span>
+                    <span>10</span>
+                    <span>5</span>
+                    <span>0</span>
+                </div>
+                <div class="t-start-graph-grid" id="tStartGraphGrid">
+                    </div>
+            </div>
+            </div>
+        </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- STATE VARIABLES ---
+        let handNumber = 1;
+        // handHistory stores { result, tStart, bonuses: { ... }, dealerChangeAfter, prediction }
+        let handHistory = []; 
+        let bigRoadData = []; 
+        let pendingTies = 0; 
+        let bigEyeBoyData = [];
+        let smallRoadData = [];
+        let cockroachRoadData = [];
+        let currentPrediction = null; // NEW: Prediction state
+
+        // --- DOM ELEMENTS ---
+        const beadGrid = document.getElementById('beadPlateGrid');
+        const mainRoadGrid = document.getElementById('mainRoadGrid');
+        const bigEyeBoyGrid = document.getElementById('bigEyeBoyGrid');
+        const smallRoadGrid = document.getElementById('smallRoadGrid');
+        const cockroachRoadGrid = document.getElementById('cockroachRoadGrid');
+        const tStartInput = document.getElementById('tStartInput');
+        const handNumberDisplay = document.getElementById('handNumberDisplay');
+        
+        // Checkbox elements
+        const checkPPair = document.getElementById('checkPPair');
+        const checkBPair = document.getElementById('checkBPair');
+        const checkSinglePP = document.getElementById('checkSinglePP');
+        const checkDoublePP = document.getElementById('checkDoublePP');
+        const checkBonus6 = document.getElementById('checkBonus6');
+        const checkBonus7 = document.getElementById('checkBonus7');
+        const checkBonus8 = document.getElementById('checkBonus8');
+        const checkBonus9 = document.getElementById('checkBonus9');
+        
+        const allCheckboxes = [
+            checkPPair, checkBPair, checkSinglePP, checkDoublePP,
+            checkBonus6, checkBonus7, checkBonus8, checkBonus9
+        ];
+        
+        // Dealer Change Button
+        const btnDealerChange = document.getElementById('btnDealerChange');
+        // tStart Graph Grid
+        const tStartGraphGrid = document.getElementById('tStartGraphGrid');
+        
+        // Import/Export Elements
+        const btnImportShoe = document.getElementById('btnImportShoe');
+        const btnExportShoe = document.getElementById('btnExportShoe');
+        const fileImporter = document.getElementById('fileImporter');
+        
+        // NEW: Prediction Buttons
+        const btnPredictP = document.getElementById('btnPredictP');
+        const btnPredictB = document.getElementById('btnPredictB');
+        const btnPredictT = document.getElementById('btnPredictT');
+        const predictionButtons = [btnPredictP, btnPredictB, btnPredictT];
+
+        // Modal elements
+        const confirmModal = document.getElementById('confirmModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirm');
+        const modalCancelBtn = document.getElementById('modalCancel');
+        let confirmCallback = null;
+        
+        // --- tStart Heatmap Color Logic (for backgrounds) ---
+        const getTStartColor = (tStart) => {
+            if (tStart === null || tStart === undefined || isNaN(tStart)) {
+                return 'transparent'; // Neutral for null/skipped tStart
+            }
+            const lightness = '88%';
+            const saturation = '90%';
+            if (tStart <= 12) {
+                return `hsl(0, ${saturation}, ${lightness})`; // Light Red
+            } else if (tStart === 13) {
+                return `hsl(30, ${saturation}, ${lightness})`; // Light Orange
+            } else if (tStart === 14) {
+                return `hsl(55, ${saturation}, ${lightness})`; // Light Yellow
+            } else if (tStart === 15) {
+                return `hsl(200, ${saturation}, ${lightness})`; // DISTINCT Light Blue (Baseline)
+            } else if (tStart === 16) {
+                return `hsl(90, ${saturation}, ${lightness})`; // Light Green
+            } else if (tStart >= 17) {
+                return `hsl(120, ${saturation}, 82%)`; // Darker Green
+            } else {
+                return `hsl(0, ${saturation}, ${lightness})`; // Light Red
+            }
+        };
+
+        // --- tStart Solid Color Logic (for borders/bars) ---
+        const getTStartSolidColor = (tStart) => {
+            if (tStart === null || tStart === undefined || isNaN(tStart)) {
+                return 'transparent'; 
+            }
+            if (tStart <= 12) {
+                return '#dc3545'; // Solid Red
+            } else if (tStart === 13) {
+                return '#fd7e14'; // Solid Orange
+            } else if (tStart === 14) {
+                return '#ffc107'; // Solid Yellow/Gold
+            } else if (tStart === 15) {
+                return '#0d6efd'; // Solid Distinct Blue
+            } else if (tStart === 16) {
+                return '#198754'; // Solid Green
+            } else if (tStart >= 17) {
+                return '#146c43'; // Solid Dark Green
+            } else {
+                return '#dc3545'; // Fallback
+            }
+        };
+
+        // --- NEW: Calculate Combined Bonus Payout ---
+        const calculateCombinedBonusPayout = (result, bonuses) => {
+            if (!bonuses) return 0;
+            
+            let total = 0;
+            
+            if (result === 'T') {
+                total += 8;
+            }
+            
+            if (bonuses.pPair) total += 11;
+            if (bonuses.bPair) total += 11;
+            if (bonuses.singlePP) total += 25;
+            if (bonuses.doublePP) total += 200;
+            if (bonuses.bonus6) total += 4;
+            if (bonuses.bonus7) total += 6;
+            if (bonuses.bonus8) total += 10;
+            if (bonuses.bonus9) total += 30;
+            
+            return total;
+        };
+
+
+        // --- MODAL FUNCTIONS ---
+        const showConfirm = (message, callback) => {
+            modalMessage.textContent = message;
+            confirmCallback = callback;
+            confirmModal.style.display = 'flex';
+        };
+        const hideConfirm = () => {
+            confirmModal.style.display = 'none';
+            confirmCallback = null;
+        };
+        modalConfirmBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            hideConfirm();
+        });
+        modalCancelBtn.addEventListener('click', () => {
+            hideConfirm();
+        });
+
+
+        // --- RENDER: BEAD PLATE (MODIFIED) ---
+        const renderBeadPlate = () => {
+            beadGrid.innerHTML = '';
+            handHistory.forEach(hand => {
+                const cell = document.createElement('div');
+                cell.classList.add('bead-cell');
+                cell.style.backgroundColor = getTStartColor(hand.tStart);
+
+                const bead = document.createElement('div');
+                bead.classList.add('bead');
+                const text = document.createElement('span');
+
+                if (hand.result === 'P') {
+                    bead.classList.add('player');
+                    text.textContent = 'P';
+                } else if (hand.result === 'B') {
+                    bead.classList.add('banker');
+                    text.textContent = 'B';
+                } else if (hand.result === 'T') {
+                    bead.classList.add('tie');
+                    text.textContent = 'T';
+                }
+                
+                bead.appendChild(text);
+                cell.appendChild(bead);
+                
+                // --- NEW: Add Bonus Payout Number ---
+                const bonusPayout = calculateCombinedBonusPayout(hand.result, hand.bonuses);
+                if (bonusPayout > 0) {
+                    const payout = document.createElement('span');
+                    payout.classList.add('bead-bonus-payout');
+                    payout.textContent = bonusPayout;
+                    cell.appendChild(payout);
+                }
+                // --- End New ---
+                
+                // --- NEW: Add Prediction Badge ---
+                if (hand.prediction) {
+                    const isCorrect = hand.prediction === hand.result;
+                    const badge = document.createElement('span');
+                    badge.classList.add('prediction-badge');
+                    badge.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    cell.appendChild(badge);
+                }
+                // --- End New ---
+
+                // --- NEW: Add Dealer Change Line ---
+                if (hand.dealerChangeAfter) {
+                    const line = document.createElement('div');
+                    line.classList.add('dealer-change-line');
+                    cell.appendChild(line);
+                }
+                // --- End New ---
+
+                beadGrid.appendChild(cell); 
+            });
+            beadGrid.scrollLeft = beadGrid.scrollWidth;
+        };
+
+        // --- RENDER: BIG ROAD (MODIFIED WITH BUG FIX) ---
+        const renderBigRoad = () => {
+            mainRoadGrid.innerHTML = ''; 
+            const grid = Array(6).fill(null).map(() => Array(200).fill(null));
+            let currentGridCol = 0;
+            let maxColumnDrawn = 0; 
+
+            for (const columnData of bigRoadData) {
+                // Find the next available starting column
+                while (grid[0][currentGridCol] !== null) {
+                    currentGridCol++;
+                }
+                let x = currentGridCol; 
+                
+                // --- START FIX ---
+                // Find the "turn row" (y_turn). This is the row *before* a collision.
+                // A collision happens if a cell in this column is already occupied by a previous tail.
+                let y_turn = 5; // Default: turns at the bottom (row 5)
+                for (let r = 0; r < 6; r++) {
+                    if (grid[r][x] !== null) {
+                        // Found a collision!
+                        y_turn = r - 1; // Turn in the row *before* the collision
+                        break; // Stop checking
+                    }
+                }
+                // If y_turn is -1 (collision at row 0), it will just start as a tail.
+                // --- END FIX ---
+
+                let y = 0;
+                let tailX = x + 1; 
+
+                for (const entry of columnData.entries) {
+                    const cellData = {
+                        type: columnData.type,
+                        ties: entry.ties,
+                        tStart: entry.tStart,
+                        bonuses: entry.bonuses, 
+                        dealerChangeAfter: entry.dealerChangeAfter 
+                    };
+
+                    if (y <= y_turn) {
+                        // We are still drawing vertically
+                        grid[y][x] = cellData;
+                        y++;
+                    } else {
+                        // We must turn and draw horizontally
+                        // Find the next available horizontal slot *starting from the turn row*
+                        // Note: y_turn is the row we draw on, e.g., if we collided at r=3, y_turn=2.
+                        // We draw the tail on row 2.
+                        let tailRow = (y_turn < 0) ? 0 : y_turn; // Handle collision at row 0
+                        
+                        while (grid[tailRow][tailX] !== null) {
+                            tailX++;
+                        }
+                        grid[tailRow][tailX] = cellData;
+                        tailX++; 
+                    }
+                }
+                maxColumnDrawn = Math.max(maxColumnDrawn, x, tailX - 1);
+            }
+
+            // --- Rendering grid (same as before) ---
+            for (let c = 0; c <= maxColumnDrawn; c++) {
+                for (let r = 0; r < 6; r++) {
+                    const cellData = grid[r][c];
+                    const cell = document.createElement('div');
+                    cell.classList.add('big-road-cell');
+                    
+                    if (cellData) {
+                        cell.style.backgroundColor = getTStartColor(cellData.tStart);
+
+                        const circle = document.createElement('div');
+                        circle.classList.add('big-road-circle');
+                        circle.classList.add(cellData.type === 'P' ? 'player' : 'banker');
+                        cell.appendChild(circle);
+
+                        if (cellData.ties > 0) {
+                            const tieMarker = document.createElement('div');
+                            tieMarker.classList.add('tie-marker');
+                            cell.appendChild(tieMarker);
+
+                            if (cellData.ties > 1) {
+                                const tieCount = document.createElement('span');
+                                tieCount.classList.add('tie-marker-count');
+                                tieCount.textContent = cellData.ties;
+                                cell.appendChild(tieCount);
+                            }
+                        }
+                        
+                        const bonusPayout = calculateCombinedBonusPayout(cellData.type, cellData.bonuses);
+                        if (bonusPayout > 0) {
+                            const payout = document.createElement('span');
+                            payout.classList.add('big-road-bonus-payout');
+                            payout.textContent = bonusPayout;
+                            cell.appendChild(payout);
+                        }
+                        
+                        if (cellData.dealerChangeAfter) {
+                            const line = document.createElement('div');
+                            line.classList.add('dealer-change-line');
+                            cell.appendChild(line);
+                        }
+                    }
+                    mainRoadGrid.appendChild(cell);
+                }
+            }
+            
+            if (mainRoadGrid.scrollWidth > mainRoadGrid.clientWidth) {
+                mainRoadGrid.scrollLeft = mainRoadGrid.scrollWidth;
+            }
+        };
+
+        // --- RENDER: DERIVED ROADS (REUSABLE) (MODIFIED WITH BUG FIX) ---
+        const renderDerivedRoad = (gridElement, roadData, symbolType) => {
+            gridElement.innerHTML = ''; 
+            const grid = Array(6).fill(null).map(() => Array(200).fill(null));
+            let currentGridCol = 0; 
+            let maxColumnDrawn = 0; 
+
+            for (const columnData of roadData) {
+                // Find the next available starting column
+                while (grid[0][currentGridCol] !== null) {
+                    currentGridCol++;
+                }
+                let x = currentGridCol; 
+                
+                // --- START FIX ---
+                // Find the "turn row" (y_turn)
+                let y_turn = 5; // Default: turns at the bottom (row 5)
+                for (let r = 0; r < 6; r++) {
+                    if (grid[r][x] !== null) {
+                        // Found a collision!
+                        y_turn = r - 1; // Turn in the row *before* the collision
+                        break; 
+                    }
+                }
+                // --- END FIX ---
+
+                let y = 0; 
+                let tailX = x + 1; 
+
+                for (const entry of columnData.entries) {
+                    const cellData = {
+                        type: columnData.type,
+                        tStart: entry.tStart,
+                        bonuses: entry.bonuses, 
+                        dealerChangeAfter: entry.dealerChangeAfter 
+                    };
+
+                    if (y <= y_turn) {
+                        grid[y][x] = cellData;
+                        y++; 
+                    } else {
+                        // We must turn and draw horizontally
+                        let tailRow = (y_turn < 0) ? 0 : y_turn; // Handle collision at row 0
+
+                        while (grid[tailRow][tailX] !== null) {
+                            tailX++; 
+                        }
+                        grid[tailRow][tailX] = cellData;
+                        tailX++;
+                    }
+                }
+                maxColumnDrawn = Math.max(maxColumnDrawn, x, tailX - 1);
+            }
+
+            // --- Rendering grid (same as before) ---
+            for (let c = 0; c <= maxColumnDrawn; c++) {
+                for (let r = 0; r < 6; r++) {
+                    const cellData = grid[r][c];
+                    const cell = document.createElement('div');
+                    cell.classList.add('derived-road-cell');
+
+                    if (cellData) {
+                        const symbol = document.createElement('div');
+                        symbol.classList.add('derived-road-symbol', symbolType);
+                        symbol.classList.add(cellData.type === 'R' ? 'red' : 'blue');
+
+                        if (symbolType === 'sr') {
+                            cell.style.backgroundColor = 'transparent';
+                            
+                            let tStartColor;
+                            
+                            if (cellData.tStart === 15) {
+                                tStartColor = '#0dcaf0'; // Use Cyan
+                            } else {
+                                tStartColor = getTStartSolidColor(cellData.tStart); // Use normal color
+                            }
+
+                            if (tStartColor !== 'transparent') {
+                                symbol.style.border = `3px solid ${tStartColor}`;
+                                symbol.style.boxSizing = 'border-box';
+                            }
+                        } else {
+                            cell.style.backgroundColor = getTStartColor(cellData.tStart);
+                        }
+                        
+                        cell.appendChild(symbol);
+                        
+                        if (cellData.dealerChangeAfter) {
+                            const line = document.createElement('div');
+                            line.classList.add('dealer-change-line');
+                            cell.appendChild(line);
+                        }
+                    }
+                    gridElement.appendChild(cell);
+                }
+            }
+            
+            if (gridElement.scrollWidth > gridElement.clientWidth) {
+                gridElement.scrollLeft = gridElement.scrollWidth;
+            }
+        };
+        
+        // --- NEW: RENDER TSTART BAR GRAPH (MODIFIED) ---
+        const renderTStartGraph = () => {
+            tStartGraphGrid.innerHTML = '';
+            const MAX_TSTART = 20; // Assume a reasonable max for scaling
+
+            handHistory.forEach((hand, i) => {
+                // 1. Create the hand column
+                const column = document.createElement('div');
+                column.classList.add('t-start-column');
+
+                // 2. Create the bar wrapper (for the bar itself)
+                const barWrapper = document.createElement('div');
+                barWrapper.classList.add('t-start-bar-wrapper');
+
+                const bar = document.createElement('div');
+                bar.classList.add('t-start-bar');
+                
+                let barHeight = 0;
+                if (hand.tStart !== null && hand.tStart !== undefined && !isNaN(hand.tStart)) {
+                    barHeight = (hand.tStart / MAX_TSTART) * 100;
+                    if (barHeight > 100) barHeight = 100; 
+                    if (barHeight < 0) barHeight = 0;
+                } else {
+                    barHeight = 1; 
+                }
+                bar.style.height = `${barHeight}%`;
+
+                if (hand.result === 'P') {
+                    bar.style.backgroundColor = '#0066cc'; // Player Blue
+                } else if (hand.result === 'B') {
+                    bar.style.backgroundColor = '#dc3545'; // Banker Red
+                } else if (hand.result === 'T') {
+                    bar.style.backgroundColor = '#28a745'; // Tie Green
+                } else {
+                    bar.style.backgroundColor = '#ccc'; // Fallback
+                }
+                
+                barWrapper.appendChild(bar);
+
+                // 3. Create the label group (for bonus and x-label)
+                const labelGroup = document.createElement('div');
+                labelGroup.classList.add('t-start-label-group');
+
+                const bonusLabel = document.createElement('div');
+                bonusLabel.classList.add('t-start-bonus-payout');
+                const bonusPayout = calculateCombinedBonusPayout(hand.result, hand.bonuses);
+                bonusLabel.textContent = bonusPayout > 0 ? bonusPayout : '';
+                
+                const label = document.createElement('div');
+                label.classList.add('t-start-x-label');
+                if ((i + 1) % 5 === 0) {
+                    label.textContent = i + 1;
+                }
+
+                labelGroup.appendChild(bonusLabel);
+                labelGroup.appendChild(label);
+                
+                column.appendChild(barWrapper);
+                column.appendChild(labelGroup);
+                tStartGraphGrid.appendChild(column);
+
+                // 5. Add dealer change line if needed
+                if (hand.dealerChangeAfter) {
+                    const lineColumn = document.createElement('div');
+                    lineColumn.classList.add('t-start-dealer-column');
+                    
+                    const lineBar = document.createElement('div');
+                    lineBar.classList.add('t-start-dealer-line-bar');
+                    
+                    const lineSpacer = document.createElement('div');
+                    lineSpacer.classList.add('t-start-dealer-line-label-spacer');
+                    
+                    lineColumn.appendChild(lineBar);
+                    lineColumn.appendChild(lineSpacer);
+                    tStartGraphGrid.appendChild(lineColumn);
+                }
+            });
+
+            // Scroll to end
+            tStartGraphGrid.scrollLeft = tStartGraphGrid.scrollWidth;
+        };
+        // --- End New ---
+
+
+        // --- LOGIC: CALCULATE DERIVED ENTRY ---
+        function calculateDerivedEntry(bigRoadData, i, j, offset) {
+            const getEntry = (col, row) => {
+                return bigRoadData[col] && bigRoadData[col].entries[row];
+            };
+            if (j > 0) {
+                const ref_col_i = i - offset;
+                if (ref_col_i < 0) return null; 
+                const cellA_exists = !!getEntry(ref_col_i, j);
+                const cellB_exists = !!getEntry(ref_col_i, j - 1);
+                return (cellA_exists === cellB_exists) ? 'R' : 'B';
+            } else {
+                const prev_col_i = i - 1;
+                const ref_col_i = i - (offset + 1); 
+                if (prev_col_i < 0 || ref_col_i < 0) return null;
+                const depth_prev = bigRoadData[prev_col_i] ? bigRoadData[prev_col_i].entries.length : 0;
+                const depth_ref = bigRoadData[ref_col_i] ? bigRoadData[ref_col_i].entries.length : 0;
+                return (depth_prev === depth_ref) ? 'R' : 'B';
+            }
+        }
+        
+        // --- LOGIC: ADD DERIVED ENTRY (MODIFIED) ---
+        function addDerivedEntry(roadData, result, tStart, bonuses) {
+            if (!result) return; 
+
+            const lastCol = roadData.length > 0 ? roadData[roadData.length - 1] : null;
+            const newEntry = { 
+                result: result, 
+                tStart: tStart,
+                bonuses: bonuses,
+                dealerChangeAfter: false 
+            }; 
+
+            if (!lastCol || lastCol.type !== result) {
+                roadData.push({
+                    type: result,
+                    entries: [newEntry] 
+                });
+            } else {
+                lastCol.entries.push(newEntry);
+            }
+        }
+
+        // --- REFACTOR: Clear All Data ---
+        const clearAllData = (resetHistory = true) => {
+            bigRoadData = [];
+            pendingTies = 0;
+            bigEyeBoyData = [];
+            smallRoadData = [];
+            cockroachRoadData = [];
+            handNumber = 1;
+            currentPrediction = null; // NEW: Reset prediction
+            
+            if (resetHistory) {
+                handHistory = [];
+            }
+        };
+
+        // --- REFACTOR: Render All Roads ---
+        const renderAllRoads = () => {
+            renderBeadPlate();
+            renderBigRoad();
+            renderDerivedRoad(bigEyeBoyGrid, bigEyeBoyData, 'beb');
+            renderDerivedRoad(smallRoadGrid, smallRoadData, 'sr');
+            renderDerivedRoad(cockroachRoadGrid, cockroachRoadData, 'cr');
+            renderTStartGraph();
+        };
+
+        // --- REFACTOR: Update UI ---
+        const updateUI = () => {
+            handNumberDisplay.textContent = handNumber;
+            tStartInput.value = '';
+            allCheckboxes.forEach(cb => cb.checked = false);
+            
+            // NEW: Reset prediction UI
+            currentPrediction = null; 
+            predictionButtons.forEach(btn => btn.classList.remove('active'));
+
+            updateCheckboxDependencies();
+            tStartInput.focus();
+        };
+
+        // --- REFACTOR: Rebuild All Roads from History ---
+        const rebuildRoadsFromHistory = () => {
+            clearAllData(false); 
+
+            handHistory.forEach((hand, index) => {
+                // MODIFIED: Prediction is not needed for road logic
+                const { result, tStart, bonuses, dealerChangeAfter } = hand; 
+                let newHand_i = -1;
+                let newHand_j = -1;
+
+                if (result === 'T') {
+                    if (bigRoadData.length > 0) {
+                        const lastCol = bigRoadData[bigRoadData.length - 1];
+                        const lastEntry = lastCol.entries[lastCol.entries.length - 1];
+                        lastEntry.ties = (lastEntry.ties || 0) + 1;
+                    } else {
+                        pendingTies++;
+                    }
+                } else if (result === 'P' || result === 'B') {
+                    const lastCol = bigRoadData.length > 0 ? bigRoadData[bigRoadData.length - 1] : null;
+                    const newEntry = { 
+                        result: result, 
+                        ties: 0, 
+                        tStart: tStart,
+                        bonuses: bonuses,
+                        dealerChangeAfter: dealerChangeAfter 
+                    }; 
+
+                    if (!lastCol || lastCol.type !== result) {
+                        newEntry.ties = pendingTies; 
+                        bigRoadData.push({ type: result, entries: [newEntry] });
+                        pendingTies = 0;
+                        newHand_i = bigRoadData.length - 1;
+                        newHand_j = 0;
+                    } else {
+                        lastCol.entries.push(newEntry);
+                        newHand_i = bigRoadData.length - 1;
+                        newHand_j = lastCol.entries.length - 1;
+                    }
+
+                    if (newHand_i !== -1) {
+                        let bebResult = calculateDerivedEntry(bigRoadData, newHand_i, newHand_j, 1);
+                        let srResult = calculateDerivedEntry(bigRoadData, newHand_i, newHand_j, 2);
+                        let crResult = calculateDerivedEntry(bigRoadData, newHand_i, newHand_j, 3);
+
+                        addDerivedEntry(bigEyeBoyData, bebResult, tStart, bonuses);
+                        if (dealerChangeAfter && bigEyeBoyData.length > 0) {
+                            bigEyeBoyData[bigEyeBoyData.length - 1].entries[bigEyeBoyData[bigEyeBoyData.length - 1].entries.length - 1].dealerChangeAfter = true;
+                        }
+                        
+                        addDerivedEntry(smallRoadData, srResult, tStart, bonuses);
+                         if (dealerChangeAfter && smallRoadData.length > 0) {
+                            smallRoadData[smallRoadData.length - 1].entries[smallRoadData[smallRoadData.length - 1].entries.length - 1].dealerChangeAfter = true;
+                        }
+
+                        addDerivedEntry(cockroachRoadData, crResult, tStart, bonuses);
+                         if (dealerChangeAfter && cockroachRoadData.length > 0) {
+                            cockroachRoadData[cockroachRoadData.length - 1].entries[cockroachRoadData[cockroachRoadData.length - 1].entries.length - 1].dealerChangeAfter = true;
+                        }
+                    }
+                }
+            });
+            
+            handNumber = handHistory.length + 1;
+        };
+
+
+        // --- MAIN HANDLER: ADD HAND (MODIFIED) ---
+        const addNewHand = (result, tStart, bonuses, prediction) => {
+            // 1. Add to history
+            handHistory.push({ 
+                result: result, 
+                tStart: tStart, 
+                bonuses: bonuses,
+                dealerChangeAfter: false,
+                prediction: prediction // NEW
+            });
+
+            // 2. Rebuild all roads
+            rebuildRoadsFromHistory();
+            
+            // 3. Render all roads
+            renderAllRoads();
+            
+            // 4. Update UI
+            updateUI();
+        };
+        
+        // --- Shared function for button clicks (MODIFIED) ---
+        const handleButtonClick = (result) => {
+            const tStartVal = tStartInput.value;
+            let tStart = null;
+            
+            if (tStartVal !== '') {
+                tStart = parseFloat(tStartVal);
+                if (isNaN(tStart)) {
+                    tStart = null; 
+                }
+            }
+            
+            const bonuses = {
+                pPair: checkPPair.checked,
+                bPair: checkBPair.checked,
+                singlePP: checkSinglePP.checked,
+                doublePP: checkDoublePP.checked,
+                bonus6: checkBonus6.checked,
+                bonus7: checkBonus7.checked,
+                bonus8: checkBonus8.checked,
+                bonus9: checkBonus9.checked
+            };
+            
+            // NEW: Get the current prediction
+            const prediction = currentPrediction;
+            
+            // MODIFIED: Pass new values to addNewHand
+            addNewHand(result, tStart, bonuses, prediction);
+        };
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('btnPlayer').addEventListener('click', () => handleButtonClick('P'));
+        document.getElementById('btnBanker').addEventListener('click', () => handleButtonClick('B'));
+        document.getElementById('btnTie').addEventListener('click', () => handleButtonClick('T'));
+
+        // --- NEW: Prediction Button Listener ---
+        const handlePredictionClick = (prediction, clickedButton) => {
+            // Remove active from all buttons
+            predictionButtons.forEach(btn => btn.classList.remove('active'));
+
+            // If clicking the already active one, deselect
+            if (currentPrediction === prediction) {
+                currentPrediction = null;
+            } else {
+                // Otherwise, select the new one
+                currentPrediction = prediction;
+                clickedButton.classList.add('active');
+            }
+        };
+
+        btnPredictP.addEventListener('click', () => handlePredictionClick('P', btnPredictP));
+        btnPredictB.addEventListener('click', () => handlePredictionClick('B', btnPredictB));
+        btnPredictT.addEventListener('click', () => handlePredictionClick('T', btnPredictT));
+        // --- End New ---
+
+
+        // --- NEW: Checkbox Dependency Logic ---
+        const updateCheckboxDependencies = () => {
+            const pChecked = checkPPair.checked;
+            const bChecked = checkBPair.checked;
+        
+            // Rule 1: Single PP
+            if (!pChecked && !bChecked) {
+                if (checkSinglePP.checked) {
+                    checkSinglePP.checked = false; // Uncheck it
+                }
+                checkSinglePP.disabled = true;
+            } else {
+                checkSinglePP.disabled = false;
+            }
+        
+            // Rule 2: Double PP
+            if (!pChecked || !bChecked) {
+                if (checkDoublePP.checked) {
+                    checkDoublePP.checked = false; // Uncheck it
+                }
+                checkDoublePP.disabled = true;
+            } else {
+                checkDoublePP.disabled = false;
+            }
+        };
+        
+        checkPPair.addEventListener('change', updateCheckboxDependencies);
+        checkBPair.addEventListener('change', updateCheckboxDependencies);
+        // --- End New ---
+
+
+        // --- NEW: Dealer Change Event Listener (MODIFIED) ---
+        btnDealerChange.addEventListener('click', () => {
+            if (handHistory.length > 0) {
+                handHistory[handHistory.length - 1].dealerChangeAfter = true;
+                rebuildRoadsFromHistory();
+                renderAllRoads();
+            }
+        });
+
+        // --- MODIFIED: Clear Button Listener ---
+        document.getElementById('btnClear').addEventListener('click', () => {
+            showConfirm('Are you sure you want to clear all hands?', () => {
+                clearAllData(true); 
+                renderAllRoads();   
+                updateUI();         
+            });
+        });
+        
+        // --- NEW: Import/Export Listeners ---
+        btnExportShoe.addEventListener('click', () => {
+            if (handHistory.length === 0) {
+                console.log("No data to export.");
+                return;
+            }
+            
+            const dataStr = JSON.stringify(handHistory, null, 2); 
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `baccarat_shoe_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        
+        btnImportShoe.addEventListener('click', () => {
+            fileImporter.click(); 
+        });
+        
+        fileImporter.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let importedData;
+                try {
+                    importedData = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                         throw new Error("Data is not an array.");
+                    }
+                    if (importedData.length > 0) {
+                        const firstHand = importedData[0];
+                        // Updated validation: check for result, bonuses can be undefined (for old files)
+                        if (typeof firstHand.result === 'undefined') {
+                            throw new Error("Invalid hand data structure. 'result' is missing.");
+                        }
+                        // Backfill missing properties for compatibility
+                        importedData.forEach(hand => {
+                            if (typeof hand.bonuses === 'undefined') hand.bonuses = {};
+                            if (typeof hand.prediction === 'undefined') hand.prediction = null;
+                        });
+                    }
+                    
+                    showConfirm(`Importing ${importedData.length} hands will overwrite the current shoe. Continue?`, () => {
+                        handHistory = importedData; 
+                        rebuildRoadsFromHistory();  
+                        renderAllRoads();           
+                        updateUI();                 
+                    });
+
+                } catch (error) {
+                    console.error("Import failed:", error);
+                    showConfirm(`Error: ${error.message}. File is not valid JSON or has incorrect data structure.`, () => {});
+                }
+                
+                event.target.value = null;
+            };
+            
+            reader.onerror = (e) => {
+                console.error("File reading error:", e);
+                 showConfirm(`Error: Could not read file.`, () => {});
+            };
+            
+            reader.readText(file);
+        });
+        // --- End New ---
+
+        // --- INITIAL RENDER ---
+        renderAllRoads(); 
+        
+        updateCheckboxDependencies(); 
+        tStartInput.focus(); 
+    });
+</script>
+</body> </html>
