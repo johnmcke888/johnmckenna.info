@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research: Live Dealer tStart Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #fafafa;
+            --accent-color: #4299e1;
+            --border-color: #333;
+            --font-main: 'JetBrains Mono', monospace;
+        }
+
+        body.light-mode {
+            --bg-color: #fafafa;
+            --text-color: #0a0a0a;
+            --accent-color: #3182ce;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { scroll-behavior: smooth; }
+        html, body { min-height: 100%; }
+
+        body {
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 70ch;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover { opacity: 0.7; }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        a:hover {
+            opacity: 0.7;
+        }
+
+        .key-details {
+            background: var(--border-color);
+            padding: 1.5rem;
+            border-radius: 0.25rem;
+            margin: 2rem 0;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .key-details p {
+            margin-bottom: 0.5rem;
+        }
+        
+        .key-details strong {
+            color: var(--accent-color);
+            margin-right: 0.5rem;
+        }
+
+        .timeline-container {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+        }
+
+        .timeline-track {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 0;
+        }
+
+        .timeline-point {
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin: 0 auto 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.3);
+        }
+
+        .timeline-point.active .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.5);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        .timeline-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-label,
+        .timeline-point.active .timeline-label {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .timeline-detail {
+            display: none;
+            padding: 1.5rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid var(--accent-color);
+            margin-top: 1rem;
+        }
+
+        .timeline-detail.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-detail h4 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .timeline-detail p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .floating-theme-toggle {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            background: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-family: var(--font-main);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        body:not(.light-mode) .floating-theme-toggle {
+            background: var(--border-color);
+            color: #fafafa;
+        }
+
+        body.light-mode .floating-theme-toggle {
+            background: var(--border-color);
+            color: #0a0a0a;
+        }
+
+        .floating-theme-toggle:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            transform: scale(1.1);
+        }
+
+        .floating-theme-toggle svg { margin: 0; }
+
+        @media (max-width: 600px) {
+            .timeline-track { flex-wrap: wrap; gap: 1rem; }
+            .timeline-line { display: none; }
+            .timeline-point { flex: 0 0 calc(50% - 0.5rem); }
+        }
+
+        /* Statistical Analysis Visualization Styles */
+        .stats-visual-container {
+            background: var(--bg-color);
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .stats-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-header h5 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .stats-header .stats-subheader {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-bottom: 0;
+        }
+
+        .hypothesis-grid {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hypothesis-card {
+            background: var(--border-color);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .hypothesis-card:hover {
+            border-color: var(--accent-color);
+        }
+
+        .hypothesis-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        .hypothesis-description {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--bg-color);
+            border-radius: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-value.not-significant {
+            color: #888;
+        }
+
+        .p-value-chart {
+            margin: 1.5rem 0;
+            padding: 1.25rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+        }
+
+        .chart-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 180px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 0 1rem;
+        }
+
+        .chart-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 100px;
+        }
+
+        .chart-bar-container {
+            width: 100%;
+            height: 140px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-bar {
+            width: 100%;
+            background: linear-gradient(180deg, #888 0%, #666 100%);
+            border-radius: 0.25rem 0.25rem 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chart-bar-group:hover .chart-bar {
+            background: linear-gradient(180deg, var(--accent-color) 0%, #2b6cb0 100%);
+        }
+
+        .chart-value {
+            position: absolute;
+            top: -1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .chart-label {
+            font-size: 0.65rem;
+            text-align: center;
+            opacity: 0.7;
+            line-height: 1.2;
+        }
+
+        .significance-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e53e3e;
+            border-top: 2px dashed #e53e3e;
+            pointer-events: none;
+        }
+
+        .significance-label {
+            position: absolute;
+            right: 0;
+            top: -1.25rem;
+            font-size: 0.65rem;
+            color: #e53e3e;
+            font-weight: 700;
+        }
+
+        .stats-conclusion {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid #888;
+        }
+
+        .stats-conclusion p {
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .stats-conclusion strong {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .power-limitation-note {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-left: 3px solid #f6ad55;
+            border-radius: 0.25rem;
+        }
+
+        .power-limitation-note .note-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #f6ad55;
+            margin-bottom: 0.75rem;
+        }
+
+        .power-limitation-note p {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .power-limitation-note ul {
+            margin: 0.75rem 0 0 1.5rem;
+            padding: 0;
+        }
+
+        .power-limitation-note li {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+            line-height: 1.5;
+        }
+
+        .required-n-box {
+            display: inline-block;
+            background: var(--border-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            margin: 0 0.25rem;
+        }
+
+        .method-note {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border-radius: 0.25rem;
+            font-size: 0.7rem;
+            opacity: 0.7;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .method-note p {
+            margin-bottom: 0.25rem;
+        }
+
+        .data-availability {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .data-availability h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            margin-top: 0;
+        }
+
+        .data-availability p {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 160px;
+            }
+            
+            .chart-bar-container {
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="projects.html" class="back-link">← Back to Projects</a>
+        
+        <h1>Live Dealer tStart Analysis</h1>
+        <p class="subtitle">
+            Investigating whether betting window durations in live dealer baccarat correlate with outcome risk profiles.
+        </p>
+
+        <h2>The Information Asymmetry Problem</h2>
+        <p>
+            Live dealer baccarat has a unique structural characteristic that makes it different from other casino games. Once the shoe is shuffled and the cut card is placed, every outcome is deterministic. Unlike blackjack, player decisions cannot alter the card order. This means that if a gaming provider uses RFID technology or pre-scanned shoes, the outcome of every hand is theoretically known to the house before the first card is dealt.
+        </p>
+        <p>
+            The house cannot alter the cards without blatant cheating, but they do control one variable: time. Specifically, the betting window duration, which I call tStart. This timer typically ranges from 12 to 17 seconds. A shorter window limits the total volume of chips that can be placed. A longer window maximizes handle. If the house knows which hands are high-liability before betting opens, they have an incentive to manipulate this variable.
+        </p>
+
+        <h2>Phase 1: Testing Per-Hand Manipulation</h2>
+        <p>
+            My initial hypothesis was straightforward: if the house is using tStart to manage risk, they would shorten the betting window on high-liability hands and lengthen it on low-liability hands. I identified two measurable risk factors to test this theory.
+        </p>
+        <p>
+            First, side bet liability. High-payout side bets like Dragon Bonus create significant exposure for the house. If they know a Dragon Bonus is about to hit, shortening the window limits total liability. Second, crowd accuracy. When the majority of money and players align on the correct outcome, the house faces maximum payout. I used crowd consensus as a proxy for hands where patterns were obvious.
+        </p>
+        <p>
+            I built two custom data collection tools to test these hypotheses: a <a href="tracker-sidebets.html">side bet outcome tracker</a> correlated with tStart durations, and a <a href="tracker-majority.html">majority betting pattern tracker</a> that recorded whether crowd consensus predicted the correct winner. I collected hundreds of data points across multiple sessions.
+        </p>
+        <p>
+            The result: rigorous statistical analysis failed to reject the null hypothesis. There was no significant correlation between individual hand outcomes and their specific tStart values.
+        </p>
+
+        <h2>Statistical Analysis Results</h2>
+        
+        <div class="stats-visual-container">
+            <div class="stats-header">
+                <h5>Phase 1: Hand-by-Hand Hypothesis Testing</h5>
+                <p class="stats-subheader">Three independent hypotheses tested using non-parametric methods</p>
+            </div>
+
+            <div class="hypothesis-grid">
+                <!-- Hypothesis 1a -->
+                <div class="hypothesis-card">
+                    <div class="hypothesis-title">H1a: tStart vs USD-Weighted Majority</div>
+                    <div class="hypothesis-description">
+                        Tests whether timer values predict betting accuracy when weighted by dollar volume. Lower tStart should correlate with correct majority bets if per-hand manipulation exists.
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-label">p-value</div>
+                            <div class="stat-value not-significant">0.295</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Effect Size (d)</div>
+                            <div class="stat-value not-significant">+0.220</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Power</div>
+                            <div class="stat-value not-significant">22%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hypothesis 1b -->
+                <div class="hypothesis-card">
+                    <div class="hypothesis-title">H1b: tStart vs Count-Weighted Majority</div>
+                    <div class="hypothesis-description">
+                        Tests whether timer values predict betting accuracy when weighted by number of bettors. Examines "crowd wisdom" vs "smart money" divergence.
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-label">p-value</div>
+                            <div class="stat-value not-significant">0.256</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Effect Size (d)</div>
+                            <div class="stat-value not-significant">+0.224</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Power</div>
+                            <div class="stat-value not-significant">23%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hypothesis 2 -->
+                <div class="hypothesis-card">
+                    <div class="hypothesis-title">H2: tStart vs High-Payout Side Bets</div>
+                    <div class="hypothesis-description">
+                        Tests whether timer values are reduced when lucrative side bets (≥6:1 payout) will hit. Examines direct house exposure management hypothesis.
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="stat-label">p-value</div>
+                            <div class="stat-value not-significant">0.750</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Effect Size (d)</div>
+                            <div class="stat-value not-significant">-0.149</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Power</div>
+                            <div class="stat-value not-significant">11%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- P-Value Visualization Chart -->
+            <div class="p-value-chart">
+                <div class="chart-title">P-Values Relative to Significance Threshold (α = 0.05)</div>
+                <div class="chart-container">
+                    <!-- Significance threshold line -->
+                    <div class="significance-line" style="top: 28px;">
+                        <span class="significance-label">α = 0.05</span>
+                    </div>
+
+                    <!-- H1a bar -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar-container">
+                            <div class="chart-bar" style="height: 47.2%;">
+                                <span class="chart-value">p = 0.295</span>
+                            </div>
+                        </div>
+                        <div class="chart-label">H1a<br/>USD Majority</div>
+                    </div>
+
+                    <!-- H1b bar -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar-container">
+                            <div class="chart-bar" style="height: 41%;">
+                                <span class="chart-value">p = 0.256</span>
+                            </div>
+                        </div>
+                        <div class="chart-label">H1b<br/>Count Majority</div>
+                    </div>
+
+                    <!-- H2 bar -->
+                    <div class="chart-bar-group">
+                        <div class="chart-bar-container">
+                            <div class="chart-bar" style="height: 100%;">
+                                <span class="chart-value">p = 0.750</span>
+                            </div>
+                        </div>
+                        <div class="chart-label">H2<br/>Side Bets</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistical Conclusion -->
+            <div class="stats-conclusion">
+                <p><strong>Result:</strong> Failed to reject null hypothesis across all three tests (p > 0.05)</p>
+                <p><strong>Effect Direction:</strong> H1a and H1b showed small positive effects (opposite predicted direction), H2 showed negligible negative effect</p>
+                <p><strong>Critical Insight:</strong> The consistent lack of significance, combined with manual data inspection revealing temporal clustering patterns, indicated the per-hand manipulation hypothesis was fundamentally misspecified rather than merely underpowered</p>
+            </div>
+
+            <!-- Power Limitation Note -->
+            <div class="power-limitation-note">
+                <div class="note-title">⚠ Statistical Power Limitation</div>
+                <p>
+                    This exploratory dataset (n=121 hands) provided only 11-23% statistical power, well below the conventional 80% threshold for confirmatory research. To reliably detect the observed effect sizes would have required:
+                </p>
+                <ul>
+                    <li>H1a (d=0.22): <span class="required-n-box">~325 hands</span> (2.7× collected)</li>
+                    <li>H1b (d=0.22): <span class="required-n-box">~315 hands</span> (2.6× collected)</li>
+                    <li>H2 (d=0.15): <span class="required-n-box">~705 hands</span> (5.8× collected)</li>
+                </ul>
+                <p>
+                    However, this limitation proved methodologically valuable. The underpowered null findings motivated closer inspection of the raw data, which revealed temporal clustering patterns invisible to hand-by-hand statistical tests. This led to the regime-based hypothesis—a fundamentally different model requiring regime change-point detection rather than simply larger sample sizes.
+                </p>
+                <p>
+                    The pivot from per-hand to regime-based analysis exemplifies proper exploratory research methodology: when initial tests fail, examine whether the hypothesis or the operationalization needs revision rather than simply collecting more data under the same flawed assumptions.
+                </p>
+            </div>
+
+            <!-- Methodology Note -->
+            <div class="method-note">
+                <p><strong>Statistical Methods:</strong> Mann-Whitney U tests (primary, non-parametric), Independent t-tests (confirmatory), Point-biserial correlations (effect size), Cohen's d (standardized effect)</p>
+                <p><strong>Multiple Comparison Correction:</strong> Benjamini-Hochberg FDR control (q = 0.05) applied across hypothesis family</p>
+                <p><strong>Dataset:</strong> 121 valid hands, single shoe sequence, New Jersey jurisdiction with full feature set</p>
+                <p><strong>Analysis Date:</strong> October 29, 2024</p>
+            </div>
+        </div>
+
+        <h2>The Pivot: Regime Theory</h2>
+        <p>
+            While the per-hand hypothesis failed, manual review of the raw data revealed something unexpected. The tStart values were not random, but they also were not toggled per hand. They appeared in blocks. I would see eight hands at 14 seconds, followed by a shift to eight hands at 17 seconds, then back down to 15 seconds for another stretch.
+        </p>
+        <p>
+            This led to a new theory. If the house manipulated tStart on a per-hand basis, smart players would simply bet heavily when the timer was short, effectively using the timer as a signal. But if tStart operates in regimes—blocks of time where the window is consistently faster or slower—the house could manage risk across sections of the shoe without marking specific hands.
+        </p>
+        <p>
+            The logic would work like this: if a section of the shoe is pattern-heavy or player-favorable, the system shifts into a fast regime with low tStart values to dampen total liability for that duration. If a section is choppy or house-favorable, the system shifts to a slow regime with high tStart values to maximize betting volume.
+        </p>
+
+        <h2>Current Research & Challenge</h2>
+        <p>
+            I am currently expanding the dataset to over 1,000 hands to test whether fast regimes correlate with higher incidences of side bet wins or player-favorable outcomes compared to slow regimes. The challenge is defining what constitutes a regime in a mathematically rigorous way.
+        </p>
+        <p>
+            Noise in the data makes this difficult. A single 17-second hand inside a streak of 14-second hands could be a glitch, a legitimate regime shift, or just variance. I need an algorithmic definition using moving averages or change point detection to automate regime classification for large-scale analysis. That's the current technical problem I'm solving.
+        </p>
+
+        <h2>Project Details</h2>
+        <div class="key-details">
+            <p><strong>Research Question:</strong> Does betting window duration (tStart) correlate with outcome risk profiles in live dealer baccarat?</p>
+            <p><strong>Methodology:</strong> Statistical analysis, custom data collection instruments, regime classification algorithms</p>
+            <p><strong>Tools Built:</strong> Side Bet Tracker, Majority Betting Tracker</p>
+            <p><strong>Current Status:</strong> Expanding dataset, developing regime detection algorithms for large-scale testing</p>
+        </div>
+
+        <h2>Research Evolution</h2>
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-point" data-version="0">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Observation</div>
+                </div>
+                
+                <div class="timeline-point" data-version="1">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Hypothesis</div>
+                </div>
+                
+                <div class="timeline-point" data-version="2">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Phase 1</div>
+                </div>
+                
+                <div class="timeline-point" data-version="3">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Analysis</div>
+                </div>
+                
+                <div class="timeline-point" data-version="4">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Pivot</div>
+                </div>
+                
+                <div class="timeline-point" data-version="5">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Current</div>
+                </div>
+            </div>
+
+            <div class="timeline-detail" data-version="0">
+                <h4>Initial Observation</h4>
+                <p>Noticed that betting window durations varied between 12-17 seconds with no obvious pattern. Given that outcomes are deterministic in live dealer baccarat, this seemed like a potential risk management lever.</p>
+            </div>
+            <div class="timeline-detail" data-version="1">
+                <h4>Per-Hand Hypothesis</h4>
+                <p>Theorized that the house manipulates tStart on a per-hand basis, shortening windows on high-liability hands and lengthening them on low-liability hands to manage exposure.</p>
+            </div>
+            <div class="timeline-detail" data-version="2">
+                <h4>Phase 1: Data Collection</h4>
+                <p>Built two custom tracking tools to test per-hand manipulation: one correlating side bet outcomes with tStart, another tracking majority betting patterns. Collected hundreds of data points across multiple sessions.</p>
+            </div>
+            <div class="timeline-detail" data-version="3">
+                <h4>Statistical Analysis</h4>
+                <p>Rigorous analysis failed to reject the null hypothesis. No statistically significant correlation found between individual hand outcomes and their specific tStart values.</p>
+                
+                <div class="stats-visual-container">
+                    <div class="stats-header">
+                        <h5>Phase 1: Hand-by-Hand Hypothesis Testing</h5>
+                        <p class="stats-subheader">Three independent hypotheses tested using non-parametric methods</p>
+                    </div>
+
+                    <div class="hypothesis-grid">
+                        <!-- Hypothesis 1a -->
+                        <div class="hypothesis-card">
+                            <div class="hypothesis-title">H1a: tStart vs USD-Weighted Majority</div>
+                            <div class="hypothesis-description">
+                                Tests whether timer values predict betting accuracy when weighted by dollar volume. Lower tStart should correlate with correct majority bets if per-hand manipulation exists.
+                            </div>
+                            <div class="stats-row">
+                                <div class="stat-box">
+                                    <div class="stat-label">p-value</div>
+                                    <div class="stat-value not-significant">0.295</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Effect Size (d)</div>
+                                    <div class="stat-value not-significant">+0.220</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Power</div>
+                                    <div class="stat-value not-significant">22%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hypothesis 1b -->
+                        <div class="hypothesis-card">
+                            <div class="hypothesis-title">H1b: tStart vs Count-Weighted Majority</div>
+                            <div class="hypothesis-description">
+                                Tests whether timer values predict betting accuracy when weighted by number of bettors. Examines "crowd wisdom" vs "smart money" divergence.
+                            </div>
+                            <div class="stats-row">
+                                <div class="stat-box">
+                                    <div class="stat-label">p-value</div>
+                                    <div class="stat-value not-significant">0.256</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Effect Size (d)</div>
+                                    <div class="stat-value not-significant">+0.224</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Power</div>
+                                    <div class="stat-value not-significant">23%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hypothesis 2 -->
+                        <div class="hypothesis-card">
+                            <div class="hypothesis-title">H2: tStart vs High-Payout Side Bets</div>
+                            <div class="hypothesis-description">
+                                Tests whether timer values are reduced when lucrative side bets (≥6:1 payout) will hit. Examines direct house exposure management hypothesis.
+                            </div>
+                            <div class="stats-row">
+                                <div class="stat-box">
+                                    <div class="stat-label">p-value</div>
+                                    <div class="stat-value not-significant">0.750</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Effect Size (d)</div>
+                                    <div class="stat-value not-significant">-0.149</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-label">Power</div>
+                                    <div class="stat-value not-significant">11%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- P-Value Visualization Chart -->
+                    <div class="p-value-chart">
+                        <div class="chart-title">P-Values Relative to Significance Threshold (α = 0.05)</div>
+                        <div class="chart-container">
+                            <!-- Significance threshold line -->
+                            <div class="significance-line" style="top: 28px;">
+                                <span class="significance-label">α = 0.05</span>
+                            </div>
+
+                            <!-- H1a bar -->
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 47.2%;">
+                                        <span class="chart-value">p = 0.295</span>
+                                    </div>
+                                </div>
+                                <div class="chart-label">H1a<br/>USD Majority</div>
+                            </div>
+
+                            <!-- H1b bar -->
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 41%;">
+                                        <span class="chart-value">p = 0.256</span>
+                                    </div>
+                                </div>
+                                <div class="chart-label">H1b<br/>Count Majority</div>
+                            </div>
+
+                            <!-- H2 bar -->
+                            <div class="chart-bar-group">
+                                <div class="chart-bar-container">
+                                    <div class="chart-bar" style="height: 100%;">
+                                        <span class="chart-value">p = 0.750</span>
+                                    </div>
+                                </div>
+                                <div class="chart-label">H2<br/>Side Bets</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistical Conclusion -->
+                    <div class="stats-conclusion">
+                        <p><strong>Result:</strong> Failed to reject null hypothesis across all three tests (p > 0.05)</p>
+                        <p><strong>Effect Direction:</strong> H1a and H1b showed small positive effects (opposite predicted direction), H2 showed negligible negative effect</p>
+                        <p><strong>Critical Insight:</strong> The consistent lack of significance, combined with manual data inspection revealing temporal clustering patterns, indicated the per-hand manipulation hypothesis was fundamentally misspecified rather than merely underpowered</p>
+                    </div>
+
+                    <!-- Power Limitation Note -->
+                    <div class="power-limitation-note">
+                        <div class="note-title">⚠ Statistical Power Limitation</div>
+                        <p>
+                            This exploratory dataset (n=121 hands) provided only 11-23% statistical power, well below the conventional 80% threshold for confirmatory research. To reliably detect the observed effect sizes would have required:
+                        </p>
+                        <ul>
+                            <li>H1a (d=0.22): <span class="required-n-box">~325 hands</span> (2.7× collected)</li>
+                            <li>H1b (d=0.22): <span class="required-n-box">~315 hands</span> (2.6× collected)</li>
+                            <li>H2 (d=0.15): <span class="required-n-box">~705 hands</span> (5.8× collected)</li>
+                        </ul>
+                        <p>
+                            However, this limitation proved methodologically valuable. The underpowered null findings motivated closer inspection of the raw data, which revealed temporal clustering patterns invisible to hand-by-hand statistical tests. This led to the regime-based hypothesis—a fundamentally different model requiring regime change-point detection rather than simply larger sample sizes.
+                        </p>
+                        <p>
+                            The pivot from per-hand to regime-based analysis exemplifies proper exploratory research methodology: when initial tests fail, examine whether the hypothesis or the operationalization needs revision rather than simply collecting more data under the same flawed assumptions.
+                        </p>
+                    </div>
+
+                    <!-- Methodology Note -->
+                    <div class="method-note">
+                        <p><strong>Statistical Methods:</strong> Mann-Whitney U tests (primary, non-parametric), Independent t-tests (confirmatory), Point-biserial correlations (effect size), Cohen's d (standardized effect)</p>
+                        <p><strong>Multiple Comparison Correction:</strong> Benjamini-Hochberg FDR control (q = 0.05) applied across hypothesis family</p>
+                        <p><strong>Dataset:</strong> 121 valid hands, single shoe sequence, New Jersey jurisdiction with full feature set</p>
+                        <p><strong>Analysis Date:</strong> October 29, 2024</p>
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-detail" data-version="4">
+                <h4>The Pivot: Regime Theory</h4>
+                <p>Manual review revealed tStart values cluster in blocks rather than varying per hand. Developed new hypothesis that tStart operates in regimes—sustained periods of fast or slow windows—to manage risk across shoe sections without marking specific hands.</p>
+            </div>
+            <div class="timeline-detail" data-version="5">
+                <h4>Current Work: Regime Definition</h4>
+                <p>Expanding dataset to 1,000+ hands. Developing algorithmic regime detection using moving averages and change point analysis. Testing whether fast regimes correlate with player-favorable outcomes and slow regimes with house-favorable outcomes.</p>
+            </div>
+        </div>
+
+        <h2>Next Steps</h2>
+        <p>
+            The immediate technical challenge is building a robust change point detection algorithm that can identify regime boundaries in noisy data. Once I have a working definition of what constitutes a regime, I can run large-scale statistical tests comparing outcome distributions across fast and slow regimes.
+        </p>
+        <p>
+            If the regime hypothesis holds, it would represent a significant finding about how live dealer platforms manage information asymmetry. If it fails, it suggests that tStart variation is either random or driven by factors unrelated to outcome risk—which would also be a valuable null result.
+        </p>
+
+        <h2>Research Philosophy</h2>
+        <p>
+            This project exemplifies how I approach analytical problems. When the initial hypothesis failed, I did not force the data to fit the theory. Instead, I examined the raw data for patterns I had not anticipated. The regime theory emerged from careful observation, not from trying to salvage a failed model.
+        </p>
+        <p>
+            The technical challenges—rigorous regime definition, change point detection, large-scale data collection—are exactly the kind of problems I find intellectually satisfying. Building the tracking tools taught me about data collection instrument design. The statistical analysis forced me to think carefully about hypothesis testing and null results. And the current algorithmic work is teaching me about pattern detection in noisy time-series data.
+        </p>
+        <p>
+            Whether the regime hypothesis proves correct or not, the process itself has been valuable. That is what research is supposed to be.
+        </p>
+
+        <div class="data-availability">
+            <h3>Data Availability</h3>
+            <p>
+                In the interest of transparency and reproducibility, the Phase 1 dataset (121 hands, n=121) used for the statistical analysis is publicly available. The dataset includes hand-by-hand tStart values, betting patterns, outcomes, side bet results, and all variables used in hypothesis testing.
+            </p>
+            <p>
+                <a href="computer:///mnt/user-data/outputs/tstart-rawdata.json">View raw data (JSON format)</a>
+            </p>
+        </div>
+
+    </div>
+
+    <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
+        </svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display:none;">
+          <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z"/>
+        </svg>
+    </button>
+
+    <script>
+        // Theme toggle
+        const themeToggle = document.getElementById('floating-theme-toggle'); 
+        const body = document.body;
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                body.classList.add('light-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+
+        // Timeline interaction
+        const timelinePoints = document.querySelectorAll('.timeline-point');
+        const timelineDetails = document.querySelectorAll('.timeline-detail');
+
+        timelinePoints.forEach(point => {
+            point.addEventListener('click', () => {
+                const version = point.getAttribute('data-version');
+                
+                timelinePoints.forEach(p => p.classList.remove('active'));
+                timelineDetails.forEach(d => d.classList.remove('active'));
+                
+                point.classList.add('active');
+                const detail = document.querySelector(`.timeline-detail[data-version="${version}"]`);
+                if (detail) {
+                    detail.classList.add('active');
+                }
+            });
+        });
+        
+        // Auto-activate the first timeline point on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
+            if(firstPoint) {
+                firstPoint.click();
+            }
+        });
+    </script>
+
+</body>
+</html>
