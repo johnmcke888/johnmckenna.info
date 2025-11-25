@@ -122,11 +122,9 @@
 
         .toc-list a {
             color: var(--text-color);
-            /* Default text color */
             transition: color 0.2s ease;
         }
 
-        /* Blue highlight on hover for outline */
         .toc-list a:hover {
             color: var(--accent-color);
             text-decoration: underline;
@@ -135,7 +133,6 @@
         /* --- PROJECT CARDS --- */
         .project-card {
             position: relative;
-            /* Essential for the overlay link */
             border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 1.25rem;
@@ -150,7 +147,6 @@
             transform: translateY(-2px);
         }
 
-        /* The link that covers the entire card (but sits below tags) */
         .card-link-overlay {
             position: absolute;
             top: 0;
@@ -158,9 +154,7 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            /* Base layer link */
             text-decoration: none !important;
-            /* No underline on the invisible link */
         }
 
         .project-header {
@@ -176,12 +170,10 @@
             font-size: 1.15rem;
             font-weight: 700;
             color: var(--text-color);
-            /* Ensure title inherits text color, not blue */
         }
 
         .project-card:hover .project-title {
             color: var(--accent-color);
-            /* Highlight title on card hover */
         }
 
         .project-body {
@@ -195,9 +187,6 @@
         .tags-section {
             position: relative;
             z-index: 2;
-            /* Sits ABOVE the card-link-overlay */
-            border-top: 1px dashed var(--border-color);
-            padding-top: 0.75rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
@@ -205,61 +194,82 @@
         }
 
         .tags-label {
-            font-size: 0.8rem;
-            color: #888;
-            margin-right: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            opacity: 0.7;
+            margin-right: 0.25rem;
         }
 
         .tag-badge {
-            font-size: 0.75rem;
-            color: var(--text-color);
-            background-color: var(--tag-bg);
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
             border: 1px solid var(--tag-border);
-            padding: 0.2rem 0.6rem;
-            border-radius: 4px;
-            text-decoration: none;
+            border-radius: 3px;
+            background: var(--tag-bg);
+            color: var(--text-color);
             transition: all 0.2s ease;
-            opacity: 0.8;
-            cursor: pointer;
+            text-decoration: none;
         }
 
         .tag-badge:hover {
+            background: var(--accent-color);
             border-color: var(--accent-color);
-            color: var(--accent-color);
-            opacity: 1;
+            color: #fff;
             text-decoration: none;
         }
 
-        /* --- THEME TOGGLE --- */
+        /* --- FLOATING THEME TOGGLE --- */
         .floating-theme-toggle {
             position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            z-index: 1000;
-            background: var(--border-color);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            width: 3rem;
-            height: 3rem;
+            bottom: 2rem;
+            right: 2rem;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
+            background-color: var(--accent-color);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .floating-theme-toggle:hover {
-            background: var(--text-color);
-            color: var(--bg-color);
             transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
 
+        .floating-theme-toggle svg {
+            fill: #fff;
+        }
+
+        /* --- RESPONSIVE --- */
         @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
             .toc-box {
-                width: 100%;
-                display: block;
+                padding: 0.75rem 1rem;
+            }
+
+            .project-card {
+                padding: 1rem;
+            }
+
+            .floating-theme-toggle {
+                bottom: 1rem;
+                right: 1rem;
+                width: 40px;
+                height: 40px;
             }
         }
     </style>
@@ -268,169 +278,110 @@
 <body>
 
     <div class="container">
-
         <div class="nav-bar">
             <a href="../index.html">← Back to Home</a>
         </div>
 
-        <h1>Projects & Tools</h1>
-        <p class="subtitle">Tools for quantifying value and optimizing risk.</p>
+        <h1>Projects</h1>
+        <div class="subtitle">Personal Projects & Research</div>
 
-        <!-- Wiki-Style Table of Contents -->
+        <!-- Wikipedia-style TOC -->
         <div class="toc-box">
             <div class="toc-title">Contents</div>
             <ul class="toc-list">
-                <li><a href="#casino-promo">Casino Promotion Analyzer</a></li>
-                <li><a href="#balloon-betting">Balloon Betting Calculator</a></li>
-                <li><a href="#multi-casino">Multi-Casino Performance Tracker</a></li>
-                <li><a href="#trophy-case">Baccarat Trophy Case</a></li>
-                <li><a href="#shoe-analysis">Baccarat Shoe Time Analysis</a></li>
-                <li><a href="#restaurant">Restaurant Rewards Analyzer</a></li>
-                <li><a href="#deal-stack">Deal Stack Optimizer</a></li>
-                <li><a href="#value-dashboard">"Value." Financial Dashboard</a></li>
+                <li><a href="#valyou">Valyou Financial Dashboard</a></li>
+                <li><a href="#promo-modeler">Promotional Value Modeler</a></li>
+                <li><a href="#balloon">Balloon Betting Modeler</a></li>
+                <li><a href="#fogo">Fogo Family Fleet Tracker</a></li>
+                <li><a href="#tstart">Live Dealer tStart Analysis</a></li>
             </ul>
         </div>
 
         <!-- Project List -->
 
-        <div id="casino-promo" class="project-card">
-            <a href="projects/arbcalc/projectpage.html" class="card-link-overlay"></a>
+        <div id="valyou" class="project-card">
+            <a href="projects/tstart/valyou.html" class="card-link-overlay"></a>
             <div class="project-header">
-                <div class="project-title">Casino Promotion Analyzer</div>
+                <div class="project-title">Valyou Financial Dashboard</div>
             </div>
             <div class="project-body">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                ex ea commodo consequat.
+                A single-input financial awareness tool that translates dollar amounts into multiple life contexts simultaneously. Enter any amount and instantly see what it represents in hours worked, investment portfolio impact, goal progress, and debt payoff potential. Built to make money feel less abstract through brutalist design and real-time context translation across four pillars: Earnings, Investments, Goals, and Debts.
             </div>
             <div class="tags-section">
                 <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=promo-economics" class="tag-badge">Promotional Economics</a>
-                <a href="index.html?tag=ev-analysis" class="tag-badge">Expected Value Analysis</a>
-                <a href="index.html?tag=optimization" class="tag-badge">Bet Sizing Optimization</a>
+                <span class="tag-badge">Behavioral Economics</span>
+                <span class="tag-badge">Metric Reframing</span>
+                <span class="tag-badge">React</span>
+                <span class="tag-badge">Financial Awareness</span>
             </div>
         </div>
 
-        <div id="balloon-betting" class="project-card">
-            <a href="ballooncalculator.html" class="card-link-overlay"></a>
+        <div id="promo-modeler" class="project-card">
+            <a href="projects/tstart/maincalc.html" class="card-link-overlay"></a>
             <div class="project-header">
-                <div class="project-title">Balloon Betting Calculator</div>
+                <div class="project-title">Promotional Value Modeler</div>
             </div>
             <div class="project-body">
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-                laborum.
+                A prescriptive modeling engine that analyzes casino promotional mechanics and outputs exact, quantified strategies for completing offers. Takes promotion parameters as input and provides a complete plan of optimal deposit amounts, precise wager sizes, specific bet selections, and guaranteed outcomes—no guesswork, no luck-based recommendations. Evolved from basic Excel modeling to a sophisticated React application handling multi-promo scenarios and complex optimization logic.
             </div>
             <div class="tags-section">
                 <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=risk-profile" class="tag-badge">Risk Profile Transformation</a>
-                <a href="index.html?tag=sequential-wagering" class="tag-badge">Sequential Wagering Strategy</a>
+                <span class="tag-badge">Prescriptive Modeling</span>
+                <span class="tag-badge">Expected Value Analysis</span>
+                <span class="tag-badge">Constrained Optimization</span>
+                <span class="tag-badge">React</span>
             </div>
         </div>
 
-        <div id="multi-casino" class="project-card">
-            <!-- Placeholder link for now -->
-            <a href="#" class="card-link-overlay"></a>
+        <div id="balloon" class="project-card">
+            <a href="projects/tstart/balloon.html" class="card-link-overlay"></a>
             <div class="project-header">
-                <div class="project-title">Multi-Casino Performance Tracker</div>
+                <div class="project-title">Balloon Betting Modeler</div>
             </div>
             <div class="project-body">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl ac aliquet lacinia, nisl
-                nunc aliquet nisl, eget aliquam nisl nunc eget nisl.
+                A risk profile transformation tool that leverages casino bonus value to completely reshape gambling risk. Uses sequential wagering strategy to progressively increase bet sizes while maintaining mathematical break-even positioning. The app dynamically recalculates optimal balloon bet sizes at each decision point along a probabilistic decision tree, providing real-time metrics on profit ranges, wagering progress, and risk probability to enable informed decision-making in live play scenarios.
             </div>
             <div class="tags-section">
                 <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=python" class="tag-badge">Python</a>
-                <a href="index.html?tag=data-analysis" class="tag-badge">Data Analysis</a>
-                <a href="index.html?tag=visualization" class="tag-badge">Visualization</a>
+                <span class="tag-badge">Risk Profile Transformation</span>
+                <span class="tag-badge">Sequential Wagering Strategy</span>
+                <span class="tag-badge">Decision Tree Modeling</span>
+                <span class="tag-badge">Break-Even Calculation</span>
             </div>
         </div>
 
-        <div id="trophy-case" class="project-card">
-            <a href="#" class="card-link-overlay"></a>
+        <div id="fogo" class="project-card">
+            <a href="projects/tstart/fogotracker.html" class="card-link-overlay"></a>
             <div class="project-header">
-                <div class="project-title">Baccarat Trophy Case</div>
+                <div class="project-title">Fogo Family Fleet Tracker</div>
             </div>
             <div class="project-body">
-                Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam
-                rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt
-                explicabo.
+                A comprehensive rewards lifecycle management system for coordinating Fogo de Chão dining across multiple people. Tracks reward status (Locked/Pending/Available) for each family member, logs every visit with detailed spend and discount analysis, manages gift card balances with automated email parsing, and calculates true meal costs factoring in stacked rewards and promotional discounts. Features a high-density spreadsheet view showing visit history with real-time "% Saved" metrics that gamify the optimization process.
             </div>
             <div class="tags-section">
                 <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=python" class="tag-badge">Python</a>
-                <a href="index.html?tag=ocr" class="tag-badge">OCR (Tesseract)</a>
-                <a href="index.html?tag=data-structuring" class="tag-badge">Data Structuring</a>
+                <span class="tag-badge">Rewards Lifecycle Tracking</span>
+                <span class="tag-badge">Gift Card Management</span>
+                <span class="tag-badge">Multi-Person Coordination</span>
+                <span class="tag-badge">Data Visualization</span>
             </div>
         </div>
 
-        <div id="shoe-analysis" class="project-card">
-            <a href="#" class="card-link-overlay"></a>
+        <div id="tstart" class="project-card">
+            <a href="projects/tstart/tstartpage.html" class="card-link-overlay"></a>
             <div class="project-header">
-                <div class="project-title">Baccarat Shoe Time Analysis</div>
+                <div class="project-title">Live Dealer tStart Analysis</div>
             </div>
             <div class="project-body">
-                Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni
-                dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est.
+                A statistical research project investigating whether online live dealer baccarat manipulates the betting window duration (tStart) based on player betting patterns. Built custom data collection tools to capture timing metadata invisible to standard players, conducted rigorous hypothesis testing using Mann-Whitney U tests and effect size analysis, and discovered that initial per-hand manipulation theory was misspecified. Currently developing regime-based analysis using change point detection to test whether tStart operates in sustained fast/slow periods correlated with house-favorable outcomes.
             </div>
             <div class="tags-section">
                 <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=python" class="tag-badge">Python</a>
-                <a href="index.html?tag=stats" class="tag-badge">Statistical Analysis</a>
-                <a href="index.html?tag=hypothesis" class="tag-badge">Hypothesis Testing</a>
-            </div>
-        </div>
-
-        <div id="restaurant" class="project-card">
-            <a href="#" class="card-link-overlay"></a>
-            <div class="project-header">
-                <div class="project-title">Restaurant Rewards Analyzer</div>
-            </div>
-            <div class="project-body">
-                Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut
-                aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse
-                quam nihil molestiae consequatur.
-            </div>
-            <div class="tags-section">
-                <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=python" class="tag-badge">Python</a>
-                <a href="index.html?tag=data" class="tag-badge">Data Analysis</a>
-                <a href="index.html?tag=excel" class="tag-badge">Excel</a>
-            </div>
-        </div>
-
-        <div id="deal-stack" class="project-card">
-            <a href="#" class="card-link-overlay"></a>
-            <div class="project-header">
-                <div class="project-title">Deal Stack Optimizer</div>
-            </div>
-            <div class="project-body">
-                At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum
-                deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non
-                provident.
-            </div>
-            <div class="tags-section">
-                <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=python" class="tag-badge">Python</a>
-                <a href="index.html?tag=scraping" class="tag-badge">Web Scraping</a>
-                <a href="index.html?tag=aggregation" class="tag-badge">Data Aggregation</a>
-            </div>
-        </div>
-
-        <div id="value-dashboard" class="project-card">
-            <a href="#" class="card-link-overlay"></a>
-            <div class="project-header">
-                <div class="project-title">"Value." Financial Dashboard</div>
-            </div>
-            <div class="project-body">
-                Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime
-                placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.
-            </div>
-            <div class="tags-section">
-                <span class="tags-label">Tags:</span>
-                <a href="index.html?tag=behavioral-economics" class="tag-badge">Behavioral Economics</a>
-                <a href="index.html?tag=metric-reframing" class="tag-badge">Metric Reframing</a>
-                <a href="index.html?tag=react" class="tag-badge">React</a>
+                <span class="tag-badge">Statistical Analysis</span>
+                <span class="tag-badge">Hypothesis Testing</span>
+                <span class="tag-badge">Data Collection</span>
+                <span class="tag-badge">Research Methodology</span>
+                <span class="tag-badge">Python</span>
             </div>
         </div>
 
