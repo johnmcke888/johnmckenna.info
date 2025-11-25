@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project: Fogo Family Fleet Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #fafafa;
+            --accent-color: #4299e1;
+            --border-color: #333;
+            --font-main: 'JetBrains Mono', monospace;
+        }
+
+        body.light-mode {
+            --bg-color: #fafafa;
+            --text-color: #0a0a0a;
+            --accent-color: #3182ce;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { scroll-behavior: smooth; }
+        html, body { min-height: 100%; }
+
+        body {
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 70ch;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover { opacity: 0.7; }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2.5rem; /* A bit more space */
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        /* --- Key Details block --- */
+        .key-details {
+            background: var(--border-color);
+            padding: 1.5rem;
+            border-radius: 0.25rem;
+            margin: 2rem 0;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .key-details p {
+            margin-bottom: 0.5rem; /* Tighter spacing */
+        }
+        
+        .key-details strong {
+            color: var(--accent-color);
+            margin-right: 0.5rem;
+        }
+
+        /* Horizontal Timeline */
+        .timeline-container {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+        }
+
+        .timeline-track {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 0;
+        }
+
+        .timeline-point {
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin: 0 auto 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.3);
+        }
+
+        .timeline-point.active .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.5);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        .timeline-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-label,
+        .timeline-point.active .timeline-label {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .timeline-detail {
+            display: none;
+            padding: 1.5rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid var(--accent-color);
+            margin-top: 1rem;
+        }
+
+        .timeline-detail.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-detail h4 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .timeline-detail p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .floating-theme-toggle {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            background: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-family: var(--font-main);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        body:not(.light-mode) .floating-theme-toggle {
+            background: var(--border-color);
+            color: #fafafa;
+        }
+
+        body.light-mode .floating-theme-toggle {
+            background: var(--border-color);
+            color: #0a0a0a;
+        }
+
+        .floating-theme-toggle:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            transform: scale(1.1);
+        }
+
+        .floating-theme-toggle svg { margin: 0; }
+
+        @media (max-width: 600px) {
+            .timeline-track { flex-wrap: wrap; gap: 1rem; }
+            .timeline-line { display: none; }
+            .timeline-point { flex: 0 0 calc(50% - 0.5rem); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="projects.html" class="back-link">← Back to Projects</a>
+        
+        <h1>Fogo Family Fleet Tracker</h1>
+        <p class="subtitle">
+            A way to keep track of everyone's rewards when Fogo refuses to let you check online
+        </p>
+
+        <h2>My New Obsession: Fogo de Chão</h2>
+        <p>
+            My new favorite restaurant chain is Fogo de Chão, an upscale Brazilian steakhouse chain. Fogo has a full menu, but I would guess most diners order the same thing, the "full churrasco" experience. Waiters walk around the dining room with large sword-like skewers of meat slicing it right onto your plate, all you can eat. This experience also includes a wide variety of side dishes at the buffet.
+        </p>
+        <p>
+            All you can eat steak seems like it should be more popular in the US, but I think it might be cost prohibitive for both restaurants and their patrons. Indeed, Fogo is a little bit expensive compared with other private equity owned chain restaurants coming in at $50-$60 per person for lunch and $65-$80 per person for dinner. Perhaps in recognition of this, Fogo launched a generous rewards program earlier this year.
+        </p>
+
+        <h2>The Opportunity: A Generous Rewards Program</h2>
+        <p>
+            The rewards program is a "visit" based system instead of a spend or points-based system. On your first visit, you earn your first reward. There are three to choose from, but the BOGO 50% off full churrasco is the clear winner. On your second visit, you earn a second reward, also with three choices but only two worth mentioning: BOGO 100% off full churrasco, or a free cut of Wagyu. These are large (sharable), expensive cuts of meat coming in at 20-30 oz costing $150-$180. Paying $180 for a large fancy steak when you're already getting all you can eat steak seems like a questionable choice, but for free I happily order it.
+        </p>
+        <p>
+            Once you earn your first and second rewards, you are basically done for the year. There is a $25 birthday reward and other limited-time rewards tied to promotional campaigns but those are few and far between. In that sense, it appears that they are trying to operate Fogo Rewards on the drug dealer model. Reel them in early in the membership year and hope the inertia lasts for the rest of the year. This model has three distinct advantages for Fogo:
+        </p>
+        <ul style="padding-left: 2rem; margin-bottom: 1rem; list-style-type: disc;">
+            <li>Fewer rewards make the program extremely simple for customers to understand</li>
+            <li>Fewer rewards means that they can make those rewards more generous (as they have)</li>
+            <li>Fewer rewards means that people will bring new friends to dine at Fogo once they have run out of rewards earning opportunities for themselves</li>
+        </ul>
+        <p>
+            I have introduced many friends to Fogo de Chão for that very reason, not only because it's a delicious and wonderful restaurant, but because every friend with a new rewards account is a potential chance to order free, delicious Wagyu. Did I mention the food is delicious?
+        </p>
+
+        <h2>The Problem: Lack of Transparency</h2>
+        <p>
+            Perhaps because the rewards program is in its infancy, it is frustratingly bare bones with regards to implementation. Right now, there is no user-facing account system whatsoever. When you earn a reward, they send you an email confirming that you have earned the reward. They will also follow up every few weeks with an email reminding you to use your reward. Other than that, you are left guessing when it comes to figuring out what rewards are available. The only way to know for sure is to give the server your phone number and hope for the best.
+        </p>
+        <p>
+            One of the more generous features of the program is actually a factor that exacerbates this problem. With Fogo rewards, any diner can earn visit credit regardless of who paid or who redeemed a reward. This means that when four people dine together, all four can collect their visit credit even if only one person paid and used a reward. That's incredibly generous, but it also means that coordinating rewards across multiple friends and family members becomes exponentially more complicated.
+        </p>
+        <p>
+            When you've got your partner, a few close friends, maybe some family members all earning rewards on different timelines, the mental overhead becomes impossible. Who has their first reward available? Who's sitting on a second reward that's about to expire? Who already used their birthday reward? Without detailed record keeping, you have absolutely no idea what discounts are on the table when you're planning a visit.
+        </p>
+
+        <h2>The Solution: Build My Own Tracker</h2>
+        <p>
+            Since Fogo won't give me any way to check my rewards online, I built a simple web app to track everything myself. It's essentially the account portal that Fogo should have built but didn't.
+        </p>
+        <p>
+            The core functionality is straightforward: I log each visit for each person, note which rewards were earned and redeemed, and the app tells me what rewards should be available for any given family member or friend at any time. No more guessing, no more showing up to dinner and finding out someone's reward already expired.
+        </p>
+        <p>
+            But once I had the visit tracking in place, I realized I could track the entire discount stack. Fogo has this habit of running limited-time promotions on top of the regular rewards (like their current "Churrasco Champions" football promo that gives you $50 off). I also buy discounted gift cards at 20% off through Costco, and I get OpenTable points for each reservation. All of these discounts compound, and tracking them manually in a spreadsheet was getting tedious.
+        </p>
+        <p>
+            So the app evolved into a comprehensive tracker that manages gift card balances (remembering what I paid vs face value), promotional rewards, OpenTable points, and anything else that affects the final bill. At the end of each visit, I can see exactly what the "Real Cost" was after all discounts, which makes it very satisfying to see just how good of a deal I'm actually getting. Sometimes the math works out to 70-80% off, which feels almost absurd for a meal this good.
+        </p>
+
+        <h2>How It Works</h2>
+        <p>
+            The app has three main views: People (where you manage each person's rewards status), Visits (a spreadsheet-style log of every meal), and Gift Cards (for tracking balances and purchase discounts).
+        </p>
+        <p>
+            The People view shows everyone in my "Family Fleet" with a "Trophy Case" visualization that displays reward status at a glance—Locked (not earned yet), Pending (earned but not redeemed), or Available (ready to use). This way I can immediately see who has what reward without clicking through individual profiles.
+        </p>
+        <p>
+            The Visits view is where things get interesting. It's a high-density spreadsheet that shows every trip to Fogo with columns for who attended, what rewards were used, what promotional discounts applied, how much was spent, and most importantly, a "% Saved" column that shows the total discount percentage. Seeing that number hit 70-80% is genuinely satisfying and has definitely encouraged me to optimize the discount stack even further.
+        </p>
+        <p>
+            The app also handles some edge cases that make the whole system work better. For example, certain Fogo locations (I won't say which) will let you stack multiple rewards in ways the corporate office probably didn't intend. The app can model these scenarios so I know exactly what to expect when I show up. It also tracks those limited-time promotional rewards that Fogo occasionally runs, which have their own expiration dates and redemption rules that would be impossible to remember otherwise.
+        </p>
+        
+        <div class="key-details">
+            <p><strong>Stack:</strong> Vanilla JS, Tailwind CSS, LocalStorage Persistence</p>
+            <p><strong>Core Concepts:</strong> Rewards Lifecycle Tracking, Gift Card Balance Management, Multi-Person Coordination</p>
+            <p><strong>Status:</strong> Active Deployment (v24)</p>
+        </div>
+
+        <h2>How It Evolved</h2>
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-point" data-version="0">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Excel</div>
+                </div>
+                
+                <div class="timeline-point" data-version="1">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v01</div>
+                </div>
+                
+                <div class="timeline-point" data-version="2">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v03</div>
+                </div>
+                
+                <div class="timeline-point" data-version="3">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v05</div>
+                </div>
+                
+                <div class="timeline-point" data-version="4">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v09</div>
+                </div>
+                
+                <div class="timeline-point" data-version="5">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v13</div>
+                </div>
+                
+                <div class="timeline-point" data-version="6">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v24</div>
+                </div>
+            </div>
+
+            <div class="timeline-detail" data-version="0">
+                <h4>Spreadsheet (Pre-v01)</h4>
+                <p>Started as an Excel spreadsheet because I needed some way to keep track of who had what rewards. It was functional but annoying to maintain, especially when trying to look things up on my phone at the restaurant.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="1">
+                <h4>Web App v01 - Basic Features</h4>
+                <p>Rebuilt as a simple web app with the core functionality: add people, log visits, track which rewards were earned. Still pretty bare bones but already way more convenient than the spreadsheet since I could access it from my phone.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="2">
+                <h4>v03 - Custom Promotional Rewards</h4>
+                <p>Added the ability to create custom rewards for Fogo's limited-time promotional campaigns. They kept running these special offers (like the Churrasco Champions football promo) that had different rules and expiration dates than the standard rewards, so I needed a way to track those separately.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="3">
+                <h4>v05 - Dashboard & Summary Stats</h4>
+                <p>Built a dashboard view to see everything at a glance. Added summary statistics like total visits, total spent, total saved, average discount percentage. Made it much easier to see the big picture instead of clicking through individual records.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="4">
+                <h4>v09 - Gift Card Tracking</h4>
+                <p>Added full gift card management since I was buying those 20% off Costco cards regularly. The app now tracks purchase cost vs face value, current balances, and calculates how much I'm actually saving when I use them. This was when the "Real Cost" calculation started getting really interesting.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="5">
+                <h4>v13 - Gift Card Email Parser</h4>
+                <p>Got tired of manually entering card numbers from the Costco gift card emails, so I built a parser that could extract all the card details automatically. Just paste the email content and it populates everything. Saved a surprising amount of time.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="6">
+                <h4>v24 - Spreadsheet View (Current)</h4>
+                <p>Complete redesign of the Visits view. Switched from individual cards to a dense spreadsheet layout where you can see 10-15 visits at once and instantly compare dates, costs, discounts, and savings percentages. The "% Saved" column turned this into a game, which definitely led to me going to Fogo more often than I probably should. This is the current version, though I'm sure I'll rebuild it again eventually.</p>
+            </div>
+        </div>
+
+        <h2>Summary</h2>
+        <p>
+            The tool is very basic, but it's complete with all the functionality I want. If the Fogo Rewards program updates in the future I'll need to update the tool, but for now it's working perfectly to extract maximum value from the program.
+        </p>
+
+    </div>
+
+    <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
+        </svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display:none;">
+          <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z"/>
+        </svg>
+    </button>
+
+    <script>
+        // Theme toggle
+        const themeToggle = document.getElementById('floating-theme-toggle'); 
+        const body = document.body;
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                body.classList.add('light-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+
+        // Timeline interaction
+        const timelinePoints = document.querySelectorAll('.timeline-point');
+        const timelineDetails = document.querySelectorAll('.timeline-detail');
+
+        timelinePoints.forEach(point => {
+            point.addEventListener('click', () => {
+                const version = point.getAttribute('data-version');
+                
+                timelinePoints.forEach(p => p.classList.remove('active'));
+                timelineDetails.forEach(d => d.classList.remove('active'));
+                
+                point.classList.add('active');
+                const detail = document.querySelector(`.timeline-detail[data-version="${version}"]`);
+                if (detail) {
+                    detail.classList.add('active');
+                }
+            });
+        });
+        
+        // Auto-activate the first timeline point on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
+            if(firstPoint) {
+                firstPoint.click();
+            }
+        });
+    </script>
+
+</body>
+</html>
