@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project: Valyou</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #fafafa;
+            --accent-color: #4299e1;
+            --border-color: #333;
+            --font-main: 'JetBrains Mono', monospace;
+        }
+
+        body.light-mode {
+            --bg-color: #fafafa;
+            --text-color: #0a0a0a;
+            --accent-color: #3182ce;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { scroll-behavior: smooth; }
+        html, body { min-height: 100%; }
+
+        body {
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 70ch;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover { opacity: 0.7; }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        ul {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .project-image {
+            margin: 2rem 0;
+            border: 3px solid var(--border-color);
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .project-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .key-details {
+            background: var(--border-color);
+            padding: 1.5rem;
+            border-radius: 0.25rem;
+            margin: 2rem 0;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .key-details p {
+            margin-bottom: 0.5rem;
+        }
+        
+        .key-details strong {
+            color: var(--accent-color);
+            margin-right: 0.5rem;
+        }
+
+        .timeline-container {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+        }
+
+        .timeline-track {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 0;
+        }
+
+        .timeline-point {
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin: 0 auto 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.3);
+        }
+
+        .timeline-point.active .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.5);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        .timeline-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-label,
+        .timeline-point.active .timeline-label {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .timeline-detail {
+            display: none;
+            padding: 1.5rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid var(--accent-color);
+            margin-top: 1rem;
+        }
+
+        .timeline-detail.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-detail h4 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .timeline-detail p {
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .floating-theme-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 48px;
+            height: 48px;
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        body.light-mode .floating-theme-toggle {
+            background: var(--border-color);
+            color: #0a0a0a;
+        }
+
+        .floating-theme-toggle:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            transform: scale(1.1);
+        }
+
+        .floating-theme-toggle svg { margin: 0; }
+
+        @media (max-width: 600px) {
+            .timeline-track { flex-wrap: wrap; gap: 1rem; }
+            .timeline-line { display: none; }
+            .timeline-point { flex: 0 0 calc(50% - 0.5rem); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="projects.html" class="back-link">← Back to Projects</a>
+        
+        <h1>Valyou</h1>
+        <p class="subtitle">
+            A financial recalibration tool to bring you back in touch with the value of a dollar
+        </p>
+
+        <h2>The Problem: Money Feels Abstract</h2>
+        <p>
+            Here's something I noticed: when you see "$100" on Amazon, it doesn't really mean anything. It's just a number. You click buy, swipe your card, and it's done. The psychological distance between seeing "$100" and understanding what $100 actually represents in your life is enormous.
+        </p>
+        <p>
+            That abstraction makes it incredibly easy to spend money without actually processing the decision. $100 could be seven hours of your life at work. It could be two weeks of coffee. It could be 2% of your entire emergency fund. But you don't think about any of that when you're clicking "Add to Cart" because the dollar amount doesn't automatically translate to those contexts.
+        </p>
+        <p>
+            I wanted to build something that would force that translation to happen. Not a budgeting app that tells you "you can't spend this" but a tool that just shows you what a dollar amount actually means in the context of your life, and then lets you decide.
+        </p>
+
+        <h2>The Solution: Single Input, Multiple Output</h2>
+        <p>
+            Valyou is built around one core mechanic: SIMO (Single Input, Multiple Output). You enter a dollar amount in a massive input field at the top of the screen, and the entire dashboard instantly recalculates to show you what that specific amount means across four different contexts: Earnings, Investments, Goals, and Debts.
+        </p>
+        <p>
+            The Earnings pane answers: "How long did I have to work to earn this amount?" It shows you both calendar time (e.g., 3 days) and actual work time (e.g., 24 hours at your desk), and it even runs a live counter showing exactly how much money you've earned since opening the tab. Watching that number climb in real-time is weirdly effective at making you think twice about spending.
+        </p>
+        <p>
+            The Investments pane answers: "What if I put this money to work instead?" It calculates the percentage increase to your total portfolio, shows you exactly how many shares of a specific stock you could buy, and displays the immediate impact to your net worth. Sometimes seeing "This $200 purchase would be 4% of your entire portfolio" is the wake-up call you need.
+        </p>
+        <p>
+            The Goals pane answers: "Is this purchase worth delaying my dreams?" It shows you what percentage of your active goal (like "New Laptop" or "Emergency Fund") the input amount would fund, with a visual progress bar that makes it painfully clear when you're about to blow a quarter of your goal on something frivolous.
+        </p>
+        <p>
+            The Debts pane answers: "Could this money set me free?" It shows what percentage of your total debt the input represents, and if the amount is enough to completely pay off a specific debt, that row highlights green with a "CAN PAY OFF" badge. The psychological impact of seeing that you could eliminate an entire debt is surprisingly motivating.
+        </p>
+
+        <h2>The Aesthetic: A Slap in the Face</h2>
+        <p>
+            I wanted the design to feel confrontational. Modern fintech apps are all soft gradients, rounded corners, and gentle nudges. Valyou deliberately rejects that aesthetic in favor of something harsher. High contrast black borders on white backgrounds. Strict grid layouts that look like financial ledgers or receipts. Monospace typography everywhere so the numbers feel raw and unvarnished.
+        </p>
+        <p>
+            The color coding is brutally simple: Green means "Go" (growth, investments, payoffs), Red means "Stop" (debt, negative impact), Orange means "Wait" (goals, things you're working toward). There's no ambiguity, no gentle suggestion. The interface tells you exactly what the data means.
+        </p>
+        <p>
+            I also added a Habits Context section that translates the Master Input into recurring bad habits. For example, if you enter $50, it might show you "This covers 4.5 months of your Starbucks habit." The goal is to shock you by showing how small recurring costs add up. Sometimes you need to see that your $6/day coffee habit costs you $2,190 per year before you really understand what it means.
+        </p>
+
+        <h2>How It Works</h2>
+        <p>
+            The whole thing runs as a single HTML file with vanilla JavaScript and Tailwind CSS. No build process, no dependencies, just open the file and it works. All data is stored in localStorage so it's completely private—nothing leaves your browser.
+        </p>
+        <p>
+            You start by entering your earnings information (salary, work hours per day) and then optionally add your investments, debts, goals, and recurring habits. Once that's configured, the Master Input becomes the center of everything. Change that number and watch the entire dashboard recalculate in real-time.
+        </p>
+        <p>
+            There's also a "Wins Tracker" feature where you can "Lock" a decision. For example, if you were about to buy a $150 pair of shoes but decided not to, you can lock that $150 as a "Win" and the app will show you what that money could have done instead (paid off 5% of a credit card, bought 2.3 shares of stock, funded 30% of a goal, etc.). Over time, the Trophy Case fills up with all your avoided purchases, which is oddly satisfying.
+        </p>
+
+        <div class="project-image">
+            <img src="valyou_screenshot.png" alt="Valyou Dashboard Interface showing the four pillars: Earnings, Investments, Goals, and Debts with a $1,888 input">
+        </div>
+
+        <div class="key-details">
+            <p><strong>Stack:</strong> HTML5, Vanilla JavaScript (ES6+), Tailwind CSS, LocalStorage</p>
+            <p><strong>Core Concepts:</strong> SIMO Interface, Context Translation, Brutalist Design, Psychological Recalibration</p>
+            <p><strong>Status:</strong> Active Development (v1.0 Beta)</p>
+        </div>
+
+        <h2>How It Evolved</h2>
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-point" data-version="0">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Concept</div>
+                </div>
+                
+                <div class="timeline-point" data-version="1">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Stage 1</div>
+                </div>
+                
+                <div class="timeline-point" data-version="2">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Stage 2</div>
+                </div>
+                
+                <div class="timeline-point" data-version="3">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Stage 3</div>
+                </div>
+            </div>
+
+            <div class="timeline-detail" data-version="0">
+                <h4>Initial Concept</h4>
+                <p>Started with a simple observation: money feels abstract and that abstraction makes it easy to spend without thinking. Sketched out the idea of a tool that would instantly translate dollar amounts into multiple life contexts. The core SIMO mechanic was there from day one.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="1">
+                <h4>Stage 1 - Earnings & Time Translation</h4>
+                <p>Built the first working version focused entirely on earnings. The Master Input would show you how many hours of work a dollar amount represented. Added the session earnings counter that ticks up in real-time based on your hourly rate. This was the proof-of-concept that the idea actually worked—watching that counter climb while considering a purchase was genuinely effective.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="2">
+                <h4>Stage 2 - The Four Pillars</h4>
+                <p>Expanded to the full four-quadrant dashboard: Earnings, Investments, Goals, and Debts. Each pane got its own color coding (blue, green, orange, red) and calculation logic. Added the brutalist design aesthetic with thick black borders and monospace fonts. This is when it started feeling like a complete tool rather than just an interesting demo.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="3">
+                <h4>Stage 3 - Context & Gamification (Current)</h4>
+                <p>Added the Habits Context section to translate inputs into recurring bad habits (e.g., "This is 3 months of your Netflix subscription"). Built the Wins Tracker so you could "lock" avoided purchases and see them accumulate in a Trophy Case. Added expand/collapse views for each pane so you could dig deeper into specific calculations when needed. This is the current version and it feels reasonably complete for what I originally set out to build.</p>
+            </div>
+        </div>
+
+        <h2>Summary</h2>
+        <p>
+            The tool does what I wanted it to do: it makes money feel less abstract. When you see "$150" and the dashboard immediately shows you "7.5 hours of work" or "30% of your laptop goal" or "Can pay off Credit Card #2," the decision becomes much clearer.
+        </p>
+        <p>
+            It's not trying to be a comprehensive financial management suite. There's no transaction tracking, no bank integrations, no complex reporting. It's just a single-purpose tool that answers one question: What does this dollar amount actually mean in the context of my life? That's it. And honestly, that's enough.
+        </p>
+
+    </div>
+
+    <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
+        </svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display:none;">
+          <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z"/>
+        </svg>
+    </button>
+
+    <script>
+        // Theme toggle
+        const themeToggle = document.getElementById('floating-theme-toggle'); 
+        const body = document.body;
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                body.classList.add('light-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+
+        // Timeline interaction
+        const timelinePoints = document.querySelectorAll('.timeline-point');
+        const timelineDetails = document.querySelectorAll('.timeline-detail');
+
+        timelinePoints.forEach(point => {
+            point.addEventListener('click', () => {
+                const version = point.getAttribute('data-version');
+                
+                timelinePoints.forEach(p => p.classList.remove('active'));
+                timelineDetails.forEach(d => d.classList.remove('active'));
+                
+                point.classList.add('active');
+                const detail = document.querySelector(`.timeline-detail[data-version="${version}"]`);
+                if (detail) {
+                    detail.classList.add('active');
+                }
+            });
+        });
+        
+        // Auto-activate the first timeline point on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
+            if(firstPoint) {
+                firstPoint.click();
+            }
+        });
+    </script>
+
+</body>
+</html>
