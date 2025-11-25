@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project: Balloon Betting Modeler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- This styling is identical to project_analyzer_skeleton.html for consistency -->
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #fafafa;
+            --accent-color: #4299e1;
+            --border-color: #333;
+            --font-main: 'JetBrains Mono', monospace;
+        }
+
+        body.light-mode {
+            --bg-color: #fafafa;
+            --text-color: #0a0a0a;
+            --accent-color: #3182ce;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { scroll-behavior: smooth; }
+        html, body { min-height: 100%; }
+
+        body {
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 70ch;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover { opacity: 0.7; }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2.5rem; /* A bit more space */
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .key-details {
+            background: var(--border-color);
+            padding: 1.5rem;
+            border-radius: 0.25rem;
+            margin: 2rem 0;
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        .key-details p {
+            margin-bottom: 0.5rem; /* Tighter spacing */
+        }
+        
+        .key-details strong {
+            color: var(--accent-color);
+            margin-right: 0.5rem;
+        }
+        
+        /* --- Screenshot Placeholder --- */
+        .screenshot {
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border: 1px dashed var(--border-color);
+        }
+        .screenshot-caption {
+            font-size: 0.85rem;
+            font-style: italic;
+            opacity: 0.7;
+            margin: 0;
+        }
+
+
+        .timeline-container {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+        }
+
+        .timeline-track {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 0;
+        }
+
+        .timeline-point {
+            position: relative;
+            z-index: 1;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin: 0 auto 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.3);
+        }
+
+        .timeline-point.active .timeline-dot {
+            background: var(--accent-color);
+            transform: scale(1.5);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        }
+
+        .timeline-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+        }
+
+        .timeline-point:hover .timeline-label,
+        .timeline-point.active .timeline-label {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .timeline-detail {
+            display: none;
+            padding: 1.5rem;
+            background: var(--border-color);
+            border-radius: 0.25rem;
+            border-left: 3px solid var(--accent-color);
+            margin-top: 1rem;
+        }
+
+        .timeline-detail.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-detail h4 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .timeline-detail p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .floating-theme-toggle {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 1000;
+            background: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-family: var(--font-main);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        body:not(.light-mode) .floating-theme-toggle {
+            background: var(--border-color);
+            color: #fafafa;
+        }
+
+        body.light-mode .floating-theme-toggle {
+            background: var(--border-color);
+            color: #0a0a0a;
+        }
+
+        .floating-theme-toggle:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+            transform: scale(1.1);
+        }
+
+        .floating-theme-toggle svg { margin: 0; }
+
+        @media (max-width: 600px) {
+            .timeline-track { flex-wrap: wrap; gap: 1rem; }
+            .timeline-line { display: none; }
+            .timeline-point { flex: 0 0 calc(50% - 0.5rem); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="projects.html" class="back-link">← Back to Projects</a>
+        
+        <h1>Balloon Betting Modeler</h1>
+        <!-- UPDATED SUBTITLE -->
+        <p class="subtitle">
+            An analytical methodology that reshapes the risk profile of gambling, setting a floor for the downside while preserving exponential upside.
+        </p>
+
+        <!-- SECTION 1: PROBLEM -->
+        <h2>The Gambler's Dilemma</h2>
+        <!-- UPDATED PROBLEM 1 (Martingale) -->
+        <p>
+            In traditional gambling, the potential for exponential gains is offset by the potential for exponential losses. Due to the house edge, the probability of losses is always greater, which is why systems like the Martingale are so infamous. One bad streak can wipe out all previous gains.
+        </p>
+        <!-- UPDATED PROBLEM 2 ("for") -->
+        <p>
+            This inspired me to develop a new strategy leveraging casino bonuses. Could I use the bonus value to completely reshape this risk profile? What if there was a strategy that eliminated the risk of downside (loss of funds) while maintaining the upside (potential for exponential returns from a winning streak)?
+        </p>
+
+        <!-- SECTION 2: SOLUTION -->
+        <h2>The "Balloon" Methodology</h2>
+        <!-- UPDATED SOLUTION 1 -->
+        <p>
+            The result was a methodology I named "Balloon Betting." As a balloon is filled with air, there is a risk that it will pop. The more air filled into a balloon, the more the chance that it will pop converges to 100%. The goal is to inflate it enough to look nice, but stop before it pops.
+        </p>
+        <!-- UPDATED SOLUTION 2 (break-even) -->
+        <p>
+            This tool models that concept. It calculates the maximum, "safe" bet size for each step—an amount you can wager where a loss (a "pop") still lets you exit with $0 profit, breaking even, but importantly not losing money. A win inflates the balloon, and the tool recalculates a new, larger "safe" bet, all while tracking progress against the bonus wagering requirements.
+        </p>
+        
+        <!-- SECTION 3: DETAILS -->
+        <h2>Project Details</h2>
+        <!-- UPDATED DETAILS (decision tree) -->
+        <p>
+            Like the main promo analyzer, this tool evolved from a basic spreadsheet into a full-featured React app. Because the payout of Player and Banker bets is different, the app must dynamically recalculate the optimal "balloon" bet size at each point on the decision tree, all while tracking progress against wagering requirements.
+        </p>
+        
+        <div class="key-details">
+            <p><strong>Stack:</strong> React, JavaScript (Hooks), Babel, Tailwind CSS</p>
+            <p><strong>Core Concepts:</strong> Risk Profile Modeling, Sequential Analysis, Break-Even Calculation, Decision Tree Modeling</p>
+            <p><strong>Status:</strong> Personal R&D (Unpublished)</p>
+        </div>
+        
+        <!-- SCREENSHOT PLACEHOLDER (as requested) -->
+        <div class="screenshot">
+            <p class="screenshot-caption">
+                [A screenshot of the main Balloon Betting session UI, showing the optimal bet size, progress bars, and betting controls.]
+            </p>
+        </div>
+
+
+        <!-- SECTION 4: EVOLUTION -->
+        <h2>Development Evolution</h2>
+        <div class="timeline-container">
+            <div class="timeline-track">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-point" data-version="0">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">Concept</div>
+                </div>
+                
+                <div class="timeline-point" data-version="1">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v1.0</div>
+                </div>
+                
+                <div class="timeline-point" data-version="2">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v1.5</div>
+                </div>
+                
+                <div class="timeline-point" data-version="3">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v2.0</div>
+                </div>
+
+                <div class="timeline-point" data-version="4">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v2.10</div>
+                </div>
+                
+                <div class="timeline-point" data-version="5">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v2.15</div>
+                </div>
+                
+                <div class="timeline-point" data-version="6">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v2.19</div>
+                </div>
+            </div>
+
+            <!-- ALL DESCRIPTIONS FILLED IN -->
+            <div class="timeline-detail" data-version="0">
+                <h4>Concept Development</h4>
+                <p>The first tool was a spreadsheet that proved the concept. It was possible to leverage casino bonus value to completely reshape the risk profile of gambling. However, it was basic and assumed a series of player bets only.</p>
+            </div>
+            <div class="timeline-detail" data-version="1">
+                <h4>Basic Implementation (v1.0)</h4>
+                <p>The first working implementation in React dynamically calculated the appropriate balloon bet size along the way as the user selected Player or Banker, solving the spreadsheet's limitation.</p>
+            </div>
+            <div class="timeline-detail" data-version="2">
+                <h4>Single Casino Mode (v1.5)</h4>
+                <p>Later, a "Single Casino" mode was introduced, proving the logic could stand alone. This included a "High Risk" mode where the user was liable to lose their deposit, but only on the first round.</p>
+            </div>
+            <div class="timeline-detail" data-version="3">
+                <h4>Dynamic Tracking (v2.0)</h4>
+                <p>This version focused on providing metrics for informed decisions, including a wagering progress bar and a probability meter. Seeing the probability get cut in half with each step drove home the risk of continuing.</p>
+            </div>
+            <!-- UPDATED v2.10 TIMELINE DESCRIPTION -->
+            <div class="timeline-detail" data-version="4">
+                <h4>Profit Evolution Table (v2.10)</h4>
+                <p>Implemented a profit evolution table showing profit ranges that narrow with each bet. All-Player wins provided the ceiling, all-Banker wins provided the floor, and the range converged on an actual figure as the user played.</p>
+            </div>
+            <div class="timeline-detail" data-version="5">
+                <h4>Custom Bet Feature (v2.15)</h4>
+                <p>I implemented a "Custom Bet" feature that allowed users to account for side bets or to place a smaller bet than the "optimal" size if they wanted to keep a profit buffer in case of a loss.</p>
+            </div>
+            <div class="timeline-detail" data-version="6">
+                <h4>Current Version (v2.19)</h4>
+                <p>The current version is a production-ready tool with full session management (reset, undo) and a polished, responsive UI for quick, on-the-fly decision making.</p>
+            </div>
+        </div>
+
+        <!-- SECTION 5: FUTURE -->
+        <h2>Future Development</h2>
+        <!-- UPDATED WITH "GAME-AGNOSTIC" LINE -->
+        <p>
+            This methodology is highly portable. I am in the process of adapting it for other games that offer ~50/50 odds, like Blackjack, Craps, or Roulette. The core logic is game-agnostic—it works anywhere there are near-even odds and sequential decisions.
+        </loc>
+        <p>
+            I am also developing a "sister" strategy called Moon Betting, which explores a similar risk-reshaping profile but does not require a casino bonus to work, instead capping the user's capital risk at a fixed amount.
+        </p>
+
+
+        <!-- SECTION 6: PHILOSOPHY (DISCLAIMER) -->
+        <h2>Project Philosophy & Motivation</h2>
+        <!-- REFINED DISCLAIMER (as discussed) -->
+        <p>
+            This tool was built to provide authentic gamblers with structure and guidance. By giving clear bet sizes and an exit point, it's an exercise in analytical game design—a way to provide a smarter, safer framework for the very real thrill of chasing a win streak. For me, solving the puzzle is the real reward.
+        </p>
+
+    </div>
+
+    <!-- Theme Toggle Button (Unchanged) -->
+    <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
+        </svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16" style="display:none;">
+          <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z"/>
+        </svg>
+    </button>
+
+    <!-- JavaScript (Unchanged) -->
+    <script>
+        // Theme toggle
+        const themeToggle = document.getElementById('floating-theme-toggle'); 
+        const body = document.body;
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                body.classList.add('light-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'block';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                sunIcon.style.display = 'block';
+                moonIcon.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+
+        // Timeline interaction
+        const timelinePoints = document.querySelectorAll('.timeline-point');
+        const timelineDetails = document.querySelectorAll('.timeline-detail');
+
+        timelinePoints.forEach(point => {
+            point.addEventListener('click', () => {
+                const version = point.getAttribute('data-version');
+                
+                timelinePoints.forEach(p => p.classList.remove('active'));
+                timelineDetails.forEach(d => d.classList.remove('active'));
+                
+                point.classList.add('active');
+                const detail = document.querySelector(`.timeline-detail[data-version="${version}"]`);
+                if (detail) {
+                    detail.classList.add('active');
+                }
+            });
+        });
+        
+        // Auto-activate the first timeline point on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
+            if(firstPoint) {
+                firstPoint.click();
+            }
+        });
+    </script>
+
+</body>
+</html>
