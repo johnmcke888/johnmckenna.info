@@ -79,25 +79,9 @@
             border-bottom: 1px dashed var(--border-color);
         }
 
-        h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-top: 2rem;
-            margin-bottom: 0.5rem;
-        }
-
         p {
             margin-bottom: 1rem;
             opacity: 0.9;
-        }
-
-        ul {
-            margin-bottom: 1rem;
-            opacity: 0.9;
-        }
-
-        ul li {
-            margin-bottom: 0.5rem;
         }
 
         .project-image {
@@ -220,8 +204,9 @@
         }
 
         .timeline-detail p {
-            margin-bottom: 0.5rem;
-            opacity: 0.9;
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
 
         .floating-theme-toggle {
@@ -270,122 +255,117 @@
         
         <h1>Valyou</h1>
         <p class="subtitle">
-            A financial recalibration tool to bring you back in touch with the value of a dollar
+            A single-input tool that translates dollar amounts into multiple life contexts simultaneously
         </p>
 
-        <h2>The Problem: Money Feels Abstract</h2>
+        <h2>The Problem</h2>
         <p>
-            Here's something I noticed: when you see "$100" on Amazon, it doesn't really mean anything. It's just a number. You click buy, swipe your card, and it's done. The psychological distance between seeing "$100" and understanding what $100 actually represents in your life is enormous.
+            Digital payments make money abstract. When you're holding physical cash, the value is tangible. You can see the stack getting smaller, you feel the weight of what you're spending. But when you see "$150" on a screen, it's just a number. Your brain doesn't process "$150" the same way it processes "4 hours of work" or "30% of your laptop fund" or "enough to pay off a credit card." The number itself is meaningless without context. I noticed I'd hesitate to buy practical things like dishwasher pods or Advil because they felt expensive, but I'd spend the same amount on something completely frivolous without thinking. In different contexts, the same dollar amount seemed to have different values.
         </p>
         <p>
-            That abstraction makes it incredibly easy to spend money without actually processing the decision. $100 could be seven hours of your life at work. It could be two weeks of coffee. It could be 2% of your entire emergency fund. But you don't think about any of that when you're clicking "Add to Cart" because the dollar amount doesn't automatically translate to those contexts.
+            I built Valyou to make digital money feel concrete again. The problem wasn't budgeting, it was that I had lost all sense of context as to what a dollar amount actually represents in my life.
         </p>
         <p>
-            I wanted to build something that would force that translation to happen. Not a budgeting app that tells you "you can't spend this" but a tool that just shows you what a dollar amount actually means in the context of your life, and then lets you decide.
-        </p>
-
-        <h2>The Solution: Single Input, Multiple Output</h2>
-        <p>
-            Valyou is built around one core mechanic: SIMO (Single Input, Multiple Output). You enter a dollar amount in a massive input field at the top of the screen, and the entire dashboard instantly recalculates to show you what that specific amount means across four different contexts: Earnings, Investments, Goals, and Debts.
-        </p>
-        <p>
-            The Earnings pane answers: "How long did I have to work to earn this amount?" It shows you both calendar time (e.g., 3 days) and actual work time (e.g., 24 hours at your desk), and it even runs a live counter showing exactly how much money you've earned since opening the tab. Watching that number climb in real-time is weirdly effective at making you think twice about spending.
-        </p>
-        <p>
-            The Investments pane answers: "What if I put this money to work instead?" It calculates the percentage increase to your total portfolio, shows you exactly how many shares of a specific stock you could buy, and displays the immediate impact to your net worth. Sometimes seeing "This $200 purchase would be 4% of your entire portfolio" is the wake-up call you need.
-        </p>
-        <p>
-            The Goals pane answers: "Is this purchase worth delaying my dreams?" It shows you what percentage of your active goal (like "New Laptop" or "Emergency Fund") the input amount would fund, with a visual progress bar that makes it painfully clear when you're about to blow a quarter of your goal on something frivolous.
-        </p>
-        <p>
-            The Debts pane answers: "Could this money set me free?" It shows what percentage of your total debt the input represents, and if the amount is enough to completely pay off a specific debt, that row highlights green with a "CAN PAY OFF" badge. The psychological impact of seeing that you could eliminate an entire debt is surprisingly motivating.
+            Traditional financial tools don't solve this. Budgeting apps track spending and set limits, but they still show you numbers. Balance sheets are just more numbers. Numbers don't trigger emotional responses. You need context to make a number meaningful.
         </p>
 
-        <h2>The Aesthetic: A Slap in the Face</h2>
+        <h2>The Solution</h2>
         <p>
-            I wanted the design to feel confrontational. Modern fintech apps are all soft gradients, rounded corners, and gentle nudges. Valyou deliberately rejects that aesthetic in favor of something harsher. High contrast black borders on white backgrounds. Strict grid layouts that look like financial ledgers or receipts. Monospace typography everywhere so the numbers feel raw and unvarnished.
+            Valyou translates dollar amounts into context through a single-input, multiple-output interface. Enter any amount and the dashboard instantly reframes it across four contexts: Earnings, Investments, Goals, and Debts.
         </p>
         <p>
-            The color coding is brutally simple: Green means "Go" (growth, investments, payoffs), Red means "Stop" (debt, negative impact), Orange means "Wait" (goals, things you're working toward). There's no ambiguity, no gentle suggestion. The interface tells you exactly what the data means.
+            Type in $1,000. Earnings shows you worked 26 hours for that money. If you spread your salary across all your time instead of just work hours, it took 78 hours of your life to accumulate it. Investments shows this is 2.1% of your portfolio, or 1.67 shares of QQQ. Goals shows you're 67% of the way to a new Studio Display. Debts shows you can pay off 42% of your Chase balance. That same number has four different meanings, all of which are displayed simultaneously.
         </p>
         <p>
-            I also added a Habits Context section that translates the Master Input into recurring bad habits. For example, if you enter $50, it might show you "This covers 4.5 months of your Starbucks habit." The goal is to shock you by showing how small recurring costs add up. Sometimes you need to see that your $6/day coffee habit costs you $2,190 per year before you really understand what it means.
-        </p>
-
-        <h2>How It Works</h2>
-        <p>
-            The whole thing runs as a single HTML file with vanilla JavaScript and Tailwind CSS. No build process, no dependencies, just open the file and it works. All data is stored in localStorage so it's completely private—nothing leaves your browser.
+            The tool includes a live earnings counter that ticks up in real-time based on your amortized salary. Watching it climb while considering a purchase creates immediate friction. There's also a Wins Tracker that displays your three most recent smart money decisions. Seeing that you used $800 toward your credit card balance reinforces you to make a smart financial decision.
         </p>
         <p>
-            You start by entering your earnings information (salary, work hours per day) and then optionally add your investments, debts, goals, and recurring habits. Once that's configured, the Master Input becomes the center of everything. Change that number and watch the entire dashboard recalculate in real-time.
-        </p>
-        <p>
-            There's also a "Wins Tracker" feature where you can "Lock" a decision. For example, if you were about to buy a $150 pair of shoes but decided not to, you can lock that $150 as a "Win" and the app will show you what that money could have done instead (paid off 5% of a credit card, bought 2.3 shares of stock, funded 30% of a goal, etc.). Over time, the Trophy Case fills up with all your avoided purchases, which is oddly satisfying.
+            This is not a budgeting tool. It doesn't discourage spending. It puts context at your fingertips so you can make informed decisions.
         </p>
 
         <div class="project-image">
             <img src="valyou_screenshot.png" alt="Valyou Dashboard Interface showing the four pillars: Earnings, Investments, Goals, and Debts with a $1,888 input">
         </div>
 
+        <h2>The Interface</h2>
+        <p>
+            The Master Input sits at the top in a giant font because everything else is secondary. Enter a number and the entire dashboard recalculates instantly. After initial setup, the only interaction is changing that input or locking an amount as a win.
+        </p>
+        <p>
+            The Earnings pane breaks time down two ways. Work Hours shows actual desk time (33.4 hours). Life Time shows calendar time including sleep and weekends (5d 20h). The Income Rates table calculates your rate down to the minute. Session Earnings ticks up in real-time while you sit there, making every minute feel accountable.
+        </p>
+        <p>
+            Each pane shows coverage percentages. The $1,888 input shows "86.7% coverage" on the Chase card, "107.7% coverage" on New Windshield. Makes comparison instant. Progress bars are just colored rectangles, the bar itself shows scale immediately.
+        </p>
+        <p>
+            Recent Wins shows your last three smart money decisions. These aren't avoided purchases, they're actual uses of money you locked as wins. Positive reinforcement for good decisions, not guilt about spending.
+        </p>
+
         <div class="key-details">
-            <p><strong>Stack:</strong> HTML5, Vanilla JavaScript (ES6+), Tailwind CSS, LocalStorage</p>
-            <p><strong>Core Concepts:</strong> SIMO Interface, Context Translation, Brutalist Design, Psychological Recalibration</p>
-            <p><strong>Status:</strong> Active Development (v1.0 Beta)</p>
+            <p><strong>Stack:</strong> Vanilla JavaScript, Tailwind CSS, LocalStorage (client-side only)</p>
+            <p><strong>Core Mechanic:</strong> Single Input, Multiple Output (SIMO)</p>
+            <p><strong>Status:</strong> Active Development (v1.2)</p>
         </div>
 
-        <h2>How It Evolved</h2>
         <div class="timeline-container">
             <div class="timeline-track">
                 <div class="timeline-line"></div>
                 
                 <div class="timeline-point" data-version="0">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">Concept</div>
+                    <div class="timeline-label">v0.1</div>
                 </div>
                 
                 <div class="timeline-point" data-version="1">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">Stage 1</div>
+                    <div class="timeline-label">v0.3</div>
                 </div>
                 
                 <div class="timeline-point" data-version="2">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">Stage 2</div>
+                    <div class="timeline-label">v0.5</div>
                 </div>
                 
                 <div class="timeline-point" data-version="3">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">Stage 3</div>
+                    <div class="timeline-label">v0.8</div>
+                </div>
+                
+                <div class="timeline-point" data-version="4">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-label">v1.2</div>
                 </div>
             </div>
 
             <div class="timeline-detail" data-version="0">
-                <h4>Initial Concept</h4>
-                <p>Started with a simple observation: money feels abstract and that abstraction makes it easy to spend without thinking. Sketched out the idea of a tool that would instantly translate dollar amounts into multiple life contexts. The core SIMO mechanic was there from day one.</p>
+                <h4>Proof of Concept (v0.1)</h4>
+                <p>Built the core SIMO mechanic with just the Earnings pane. One input translates to hours worked and calendar days.</p>
             </div>
             
             <div class="timeline-detail" data-version="1">
-                <h4>Stage 1 - Earnings & Time Translation</h4>
-                <p>Built the first working version focused entirely on earnings. The Master Input would show you how many hours of work a dollar amount represented. Added the session earnings counter that ticks up in real-time based on your hourly rate. This was the proof-of-concept that the idea actually worked—watching that counter climb while considering a purchase was genuinely effective.</p>
+                <h4>First Full Build (v0.3)</h4>
+                <p>Implemented the Earnings pane and the Debts pane. Added the live earnings counter.</p>
             </div>
             
             <div class="timeline-detail" data-version="2">
-                <h4>Stage 2 - The Four Pillars</h4>
-                <p>Expanded to the full four-quadrant dashboard: Earnings, Investments, Goals, and Debts. Each pane got its own color coding (blue, green, orange, red) and calculation logic. Added the brutalist design aesthetic with thick black borders and monospace fonts. This is when it started feeling like a complete tool rather than just an interesting demo.</p>
+                <h4>Four Contexts (v0.5)</h4>
+                <p>Added Investments and Goals panes to complete the four-context dashboard.</p>
             </div>
             
             <div class="timeline-detail" data-version="3">
-                <h4>Stage 3 - Context & Gamification (Current)</h4>
-                <p>Added the Habits Context section to translate inputs into recurring bad habits (e.g., "This is 3 months of your Netflix subscription"). Built the Wins Tracker so you could "lock" avoided purchases and see them accumulate in a Trophy Case. Added expand/collapse views for each pane so you could dig deeper into specific calculations when needed. This is the current version and it feels reasonably complete for what I originally set out to build.</p>
+                <h4>Habits & Gamification (v0.8)</h4>
+                <p>Added Habits Context to translate inputs into recurring costs. Built the Wins Tracker so you could lock avoided purchases and watch them accumulate. Added expand/collapse for each pane to show detailed breakdowns.</p>
+            </div>
+            
+            <div class="timeline-detail" data-version="4">
+                <h4>Current Version (v1.2)</h4>
+                <p>Polished the UI to this more visually appealing brutalist design instead of an earlier brutalist design that was less pretty.</p>
             </div>
         </div>
 
         <h2>Summary</h2>
         <p>
-            The tool does what I wanted it to do: it makes money feel less abstract. When you see "$150" and the dashboard immediately shows you "7.5 hours of work" or "30% of your laptop goal" or "Can pay off Credit Card #2," the decision becomes much clearer.
-        </p>
-        <p>
-            It's not trying to be a comprehensive financial management suite. There's no transaction tracking, no bank integrations, no complex reporting. It's just a single-purpose tool that answers one question: What does this dollar amount actually mean in the context of my life? That's it. And honestly, that's enough.
+            The tool does one thing: it makes dollar amounts feel concrete. "$1,000" stops being an abstract number and becomes "26 work hours" or "2.1% of portfolio" or "67% of Studio Display goal" or "could pay off 42% of Chase balance." That context empowers users to make better financial decisions.
         </p>
 
     </div>
@@ -400,7 +380,6 @@
     </button>
 
     <script>
-        // Theme toggle
         const themeToggle = document.getElementById('floating-theme-toggle'); 
         const body = document.body;
         const sunIcon = document.getElementById('theme-icon-sun');
@@ -428,7 +407,6 @@
             setTheme(isLight ? 'dark' : 'light');
         });
 
-        // Timeline interaction
         const timelinePoints = document.querySelectorAll('.timeline-point');
         const timelineDetails = document.querySelectorAll('.timeline-detail');
 
@@ -447,7 +425,6 @@
             });
         });
         
-        // Auto-activate the first timeline point on load
         document.addEventListener('DOMContentLoaded', () => {
             const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
             if(firstPoint) {
