@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     
-    <!-- This styling is identical to project_analyzer_skeleton.html for consistency -->
     <style>
         :root {
             --bg-color: #0a0a0a;
@@ -74,17 +73,10 @@
         h2 {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-top: 2.5rem; /* A bit more space */
+            margin-top: 2.5rem;
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px dashed var(--border-color);
-        }
-
-        h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-top: 2rem;
-            margin-bottom: 0.5rem;
         }
 
         p {
@@ -101,30 +93,13 @@
         }
         
         .key-details p {
-            margin-bottom: 0.5rem; /* Tighter spacing */
+            margin-bottom: 0.5rem;
         }
         
         .key-details strong {
             color: var(--accent-color);
             margin-right: 0.5rem;
         }
-        
-        /* --- Screenshot Placeholder --- */
-        .screenshot {
-            text-align: center;
-            margin: 2rem 0;
-            padding: 1rem;
-            background: var(--border-color);
-            border-radius: 0.25rem;
-            border: 1px dashed var(--border-color);
-        }
-        .screenshot-caption {
-            font-size: 0.85rem;
-            font-style: italic;
-            opacity: 0.7;
-            margin: 0;
-        }
-
 
         .timeline-container {
             margin: 2rem 0;
@@ -241,16 +216,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
 
-        body:not(.light-mode) .floating-theme-toggle {
-            background: var(--border-color);
-            color: #fafafa;
-        }
-
-        body.light-mode .floating-theme-toggle {
-            background: var(--border-color);
-            color: #0a0a0a;
-        }
-
         .floating-theme-toggle:hover {
             background: var(--text-color);
             color: var(--bg-color);
@@ -272,55 +237,82 @@
         <a href="index.html" class="back-link">← Back to Projects</a>
         
         <h1>Balloon Betting Modeler</h1>
-        <!-- UPDATED SUBTITLE -->
         <p class="subtitle">
-            An analytical methodology that reshapes the risk profile of gambling, setting a floor for the downside while preserving exponential upside.
+            A mathematical exercise in reshaping risk profiles using bonus value as a buffer
         </p>
 
-        <!-- SECTION 1: PROBLEM -->
-        <h2>The Gambler's Dilemma</h2>
-        <!-- UPDATED PROBLEM 1 (Martingale) -->
+        <h2>The Problem</h2>
         <p>
-            In traditional gambling, the potential for exponential gains is offset by the potential for exponential losses. Due to the house edge, the probability of losses is always greater, which is why systems like the Martingale are so infamous. One bad streak can wipe out all previous gains.
+            The Martingale betting system is infamous for good reason. Double your bet after each loss, and eventually you'll recover everything. The problem is that "eventually" might mean betting what's left of your entire bankroll on a single hand. One bad streak wipes you out completely.
         </p>
-        <!-- UPDATED PROBLEM 2 ("for") -->
         <p>
-            This inspired me to develop a new strategy leveraging casino bonuses. Could I use the bonus value to completely reshape this risk profile? What if there was a strategy that eliminated the risk of downside (loss of funds) while maintaining the upside (potential for exponential returns from a winning streak)?
+            Reverse Martingale flips the logic by doubling your bet after each win instead. This solves the bankroll explosion problem, but you're still gambling with your own money. Win five hands in a row and you've built a nice profit. Lose on the sixth and you've lost it all, plus you're still down your original stake. Each consecutive win roughly halves your probability of continuing the streak, so the math works against you quickly.
+        </p>
+        <p>
+            Both systems have the same fundamental flaw: negative expected value. The house edge means that over enough attempts, losses are more likely than gains. You're playing with your own money, and the math is against you.
+        </p>
+        <p>
+            But what if you could restructure the payoff entirely? What if the worst case was breaking even instead of losing money, while wins still compounded exponentially?
         </p>
 
-        <!-- SECTION 2: SOLUTION -->
-        <h2>The "Balloon" Methodology</h2>
-        <!-- UPDATED SOLUTION 1 -->
+        <h2>The Idea</h2>
         <p>
-            The result was a methodology I named "Balloon Betting." As a balloon is filled with air, there is a risk that it will pop. The more air filled into a balloon, the more the chance that it will pop converges to 100%. The goal is to inflate it enough to look nice, but stop before it pops.
+            The traditional bet modeler provides an "equilibrium" solution, one where the profit will be the same regardless of the outcome. Instead of just walking away with this secured profit, we can recalculate a new starting bet configuration that shifts all of the EV to one side. One outcome results in a profit (roughly double the profit of the equilibrium solution) and the other outcome results in breaking even (not a net loss).
         </p>
-        <!-- UPDATED SOLUTION 2 (break-even) -->
         <p>
-            This tool models that concept. It calculates the maximum, "safe" bet size for each step—an amount you can wager where a loss (a "pop") still lets you exit with $0 profit, breaking even, but importantly not losing money. A win inflates the balloon, and the tool recalculates a new, larger "safe" bet, all while tracking progress against the bonus wagering requirements.
+            Even after winning the first round, the wagering requirements for the promotion will likely not be satisfied. Instead of satisfying these requirements in the traditional way, what if we continued to press our luck with one or more wagers? We could take the win amount from the first round and wager it again. If we win, then we have double that amount in profit while maintaining break-even as the worst case scenario.
         </p>
-        
-        <!-- SECTION 3: DETAILS -->
-        <h2>Project Details</h2>
-        <!-- UPDATED DETAILS (decision tree) -->
         <p>
-            Like the main promo analyzer, this tool evolved from a basic spreadsheet into a full-featured React app. Because the payout of Player and Banker bets is different, the app must dynamically recalculate the optimal "balloon" bet size at each point on the decision tree, all while tracking progress against wagering requirements.
+            I called it Balloon Betting because that's exactly what it is. Each win inflates your profit. Each additional bet risks popping the balloon and sending you back to break-even. You inflate as far as you're willing to go, then stop. The probability of hitting a loss approaches 100% with each consecutive bet, so the tool calculates the exact safe bet size at every step.
         </p>
-        
+
+        <h2>Why Balloon?</h2>
+        <p>
+            The equilibrium strategy locks in a guaranteed profit. Balloon Betting asks: what if you could turn that guaranteed $50 into a potential $100, $200, $400, or more, without risking a loss?
+        </p>
+        <p>
+            Each consecutive win doubles your profit potential. Win once and you have 2x the equilibrium profit. Win twice: 4x. Win three times: 8x. The exponential growth follows reverse Martingale logic, where each bet size increases based on your growing bankroll. The critical difference: when the balloon pops, you return to break-even instead of losing money.
+        </p>
+        <p>
+            The trade-off is probability. Each consecutive win cuts your success odds roughly in half. Starting from about 49-50% for a single bet, your chances of three straight wins drop to around 12.5%. The tool shows you the declining probability at each step, letting you decide when the accumulated profit is worth locking in.
+        </p>
+
+        <h2>How It Works</h2>
+        <p>
+            The balloon bet calculation has three components. Adding these three values provides the maximum safe bet at each step:
+        </p>
+        <ol style="margin-left: 2rem; margin-bottom: 1rem;">
+            <li style="margin-bottom: 0.5rem;">The profit from the initial equilibrium round. This is the actual cash profit you'd walk away with using the traditional hedged approach, not the bonus face value.</li>
+            <li style="margin-bottom: 0.5rem;">The cash value of any lossback bonus you earned from the live dealer round, not always applicable.</li>
+            <li style="margin-bottom: 0.5rem;">Something I call "wagering credit". Giving details of the calculation requires revealing proprietary information, but basically the more we wager ballooning, the less we will have to wager to unlock the bonus. This reduces the cost to cash out, so it can be included in the bet size calculation.</li>
+        </ol>
+        <p>
+            The bet size calculation needs to be dynamic for two main reasons. First, the wagering credit calculation is complicated math that requires knowing the remaining wagering requirement at each point. Second, the payouts for a winning Player bet are 1:1 but a winning Banker bet pays 0.95:1. Both of these factors influence the safe bet size for the next round, so it's essential for the user to input their wagers as they go along.
+        </p>
+
+        <h2>UI Features</h2>
+        <p>
+            In addition to these bet size calculations, the tool also offers the option to enter a custom bet. This is useful for the case where the user wants to play side bets and for the case where the user made an error in placing the wager. For example, if the user only had time to place $75 instead of $80, they can enter that in the tool and have the correct results calculated for the next round.
+        </p>
+        <p>
+            The tool supports both standard and "High Risk" modes. In High Risk mode, you're liable for your deposit on the first bet only. After that first round, all subsequent bets maintain the break-even floor. This allows for a larger initial balloon bet at the cost of actual downside risk on the opening hand.
+        </p>
+        <p>
+            The tool will make a bet size recommendation until the wagering requirements have been met. Playing beyond that is probably unwise for players who receive frequent casino offers. That play would be best reserved for instances where they need to fulfill a wagering requirement. Mathematically, it would be possible to calculate a safe bet size forever until the player loses once. It's just not a recommended strategy, so it's not built into the software.
+        </p>
+        <p>
+            A table of possible outcomes is displayed showing the range of possible results of winning <em>n</em> rounds, where n is the number of rounds required to fulfill the wagering requirement. The upper bound of profit for winning n rounds would be for the case of all Player wins and the lower bound of profit would be for all Banker wins. As the user enters their actual bet selections, these values converge to the real profit value.
+        </p>
+        <p>
+            At every stage, the user has the option to consider: should I stop? Am I happy with this profit? Should I take the money and run or will I press my luck further? All of the visuals I implemented are to help the user make the most informed decision possible for these questions.
+        </p>
+
         <div class="key-details">
             <p><strong>Stack:</strong> React, JavaScript (Hooks), Babel, Tailwind CSS</p>
-            <p><strong>Core Concepts:</strong> Risk Profile Modeling, Sequential Analysis, Break-Even Calculation, Decision Tree Modeling</p>
+            <p><strong>Core Concepts:</strong> Risk Profile Transformation, Sequential Wagering, Break-Even Calculation, Decision Tree Modeling</p>
             <p><strong>Status:</strong> Personal R&D (Unpublished)</p>
         </div>
-        
-        <!-- SCREENSHOT PLACEHOLDER (as requested) -->
-        <div class="screenshot">
-            <p class="screenshot-caption">
-                [A screenshot of the main Balloon Betting session UI, showing the optimal bet size, progress bars, and betting controls.]
-            </p>
-        </div>
 
-
-        <!-- SECTION 4: EVOLUTION -->
         <h2>Development Evolution</h2>
         <div class="timeline-container">
             <div class="timeline-track">
@@ -343,17 +335,17 @@
                 
                 <div class="timeline-point" data-version="3">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">v2.0</div>
+                    <div class="timeline-label">v1.6</div>
                 </div>
 
                 <div class="timeline-point" data-version="4">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">v2.10</div>
+                    <div class="timeline-label">v2.0</div>
                 </div>
                 
                 <div class="timeline-point" data-version="5">
                     <div class="timeline-dot"></div>
-                    <div class="timeline-label">v2.15</div>
+                    <div class="timeline-label">v2.10</div>
                 </div>
                 
                 <div class="timeline-point" data-version="6">
@@ -362,71 +354,56 @@
                 </div>
             </div>
 
-            <!-- ALL DESCRIPTIONS FILLED IN -->
             <div class="timeline-detail" data-version="0">
                 <h4>Concept Development</h4>
-                <p>The first tool was a spreadsheet that proved the concept. It was possible to leverage casino bonus value to completely reshape the risk profile of gambling. However, it was basic and assumed a series of player bets only.</p>
+                <p>Built a spreadsheet to prove the concept. It worked, but the spreadsheet assumed all Player bets. That's fine for demonstrating the idea but useless in practice since you need to handle both outcomes dynamically.</p>
             </div>
             <div class="timeline-detail" data-version="1">
                 <h4>Basic Implementation (v1.0)</h4>
-                <p>The first working implementation in React dynamically calculated the appropriate balloon bet size along the way as the user selected Player or Banker, solving the spreadsheet's limitation.</p>
+                <p>Migrated to React so the calculator could recalculate the optimal bet size after each hand based on whether you chose Player or Banker. This solved the spreadsheet's limitation.</p>
             </div>
             <div class="timeline-detail" data-version="2">
-                <h4>Single Casino Mode (v1.5)</h4>
-                <p>Later, a "Single Casino" mode was introduced, proving the logic could stand alone. This included a "High Risk" mode where the user was liable to lose their deposit, but only on the first round.</p>
+                <h4>Custom Bet Feature (v1.5)</h4>
+                <p>Added ability to place smaller bets than the "optimal" size if you want to maintain a safety buffer. Useful for accounting for side bets or just being more conservative.</p>
             </div>
             <div class="timeline-detail" data-version="3">
-                <h4>Dynamic Tracking (v2.0)</h4>
-                <p>This version focused on providing metrics for informed decisions, including a wagering progress bar and a probability meter. Seeing the probability get cut in half with each step drove home the risk of continuing.</p>
+                <h4>Single Casino Mode (v1.6)</h4>
+                <p>Added a "Single Casino" mode that didn't require cross-platform hedging. Also implemented "High Risk" mode where you're liable for your deposit on the first bet but break-even on all subsequent bets.</p>
             </div>
-            <!-- UPDATED v2.10 TIMELINE DESCRIPTION -->
             <div class="timeline-detail" data-version="4">
-                <h4>Profit Evolution Table (v2.10)</h4>
-                <p>Implemented a profit evolution table showing profit ranges that narrow with each bet. All-Player wins provided the ceiling, all-Banker wins provided the floor, and the range converged on an actual figure as the user played.</p>
+                <h4>Dynamic Readouts (v2.0)</h4>
+                <p>Added wagering progress bar and probability meter. Watching the probability get cut in half with each step makes the exponential risk very clear.</p>
             </div>
             <div class="timeline-detail" data-version="5">
-                <h4>Custom Bet Feature (v2.15)</h4>
-                <p>I implemented a "Custom Bet" feature that allowed users to account for side bets or to place a smaller bet than the "optimal" size if they wanted to keep a profit buffer in case of a loss.</p>
+                <h4>Profit Evolution Table (v2.10)</h4>
+                <p>Built a table showing profit ranges that narrow as you progress. All-Player wins give you the ceiling, all-Banker wins give you the floor. The range converges as you play.</p>
             </div>
             <div class="timeline-detail" data-version="6">
-                <h4>Current Version (v2.19)</h4>
-                <p>The current version is a production-ready tool with full session management (reset, undo) and a polished, responsive UI for quick, on-the-fly decision making.</p>
+                <h4>UI Polish (v2.19)</h4>
+                <p>Polished the UI, added session management (reset, undo), made it responsive. This is production-ready for what it is.</p>
             </div>
         </div>
 
-        <!-- SECTION 5: FUTURE -->
-        <h2>Future Development</h2>
-        <!-- UPDATED WITH "GAME-AGNOSTIC" LINE -->
+        <h2>Future Work</h2>
         <p>
-            This methodology is highly portable. I am in the process of adapting it for other games that offer ~50/50 odds, like Blackjack, Craps, or Roulette. The core logic is game-agnostic—it works anywhere there are near-even odds and sequential decisions.
-        </loc>
-        <p>
-            I am also developing a "sister" strategy called Moon Betting, which explores a similar risk-reshaping profile but does not require a casino bonus to work, instead capping the user's capital risk at a fixed amount.
+            This tool is designed for Baccarat but the methodology is game-agnostic. It can work for any game with roughly 50/50 odds of doubling your money. This includes blackjack, red/black, even/odd, 1-18/19-36 bets on roulette, and Come/Don't Come or Pass/Don't Pass bets on craps. Future versions of the calculator would require slight tweaks to account for the rules of each game. For example, when using this tool with blackjack, it would be nice to have an option for winning with blackjack, which pays 3:2 instead of 1:1.
         </p>
-
-
-        <!-- SECTION 6: PHILOSOPHY (DISCLAIMER) -->
-        <h2>Project Philosophy & Motivation</h2>
-        <!-- REFINED DISCLAIMER (as discussed) -->
         <p>
-            This tool was built to provide authentic gamblers with structure and guidance. By giving clear bet sizes and an exit point, it's an exercise in analytical game design—a way to provide a smarter, safer framework for the very real thrill of chasing a win streak. For me, solving the puzzle is the real reward.
+            I also developed this strategy into a similar one that doesn't require having a casino bonus at all. I call this one Moon Betting. This strategy has downside potential, meaning that it can result in a loss for the bettor, but it caps the downside to whatever the initial bet is. If the user is willing to stomach a small loss, they benefit from an enlarged first bet size, an effect that will compound exponentially if they are successful.
         </p>
 
     </div>
 
-    <!-- Theme Toggle Button (Unchanged) -->
     <button id="floating-theme-toggle" class="floating-theme-toggle" title="Toggle dark/light mode">
         <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
           <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707z"/>
         </svg>
-        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16" style="display:none;">
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display:none;">
           <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278zM4.858 1.311A7.269 7.269 0 0 0 1.025 7.71c0 4.021 3.278 7.277 7.318 7.277a7.316 7.316 0 0 0 5.205-2.149A8.507 8.507 0 0 1 8.344 15C4.234 15 1 11.766 1 7.71 1 5.25 2.414 3.05 4.858 1.311z"/>
         </svg>
     </button>
 
-    <!-- JavaScript (Unchanged) -->
     <script>
-        // Theme toggle
         const themeToggle = document.getElementById('floating-theme-toggle'); 
         const body = document.body;
         const sunIcon = document.getElementById('theme-icon-sun');
@@ -454,7 +431,6 @@
             setTheme(isLight ? 'dark' : 'light');
         });
 
-        // Timeline interaction
         const timelinePoints = document.querySelectorAll('.timeline-point');
         const timelineDetails = document.querySelectorAll('.timeline-detail');
 
@@ -473,7 +449,6 @@
             });
         });
         
-        // Auto-activate the first timeline point on load
         document.addEventListener('DOMContentLoaded', () => {
             const firstPoint = document.querySelector('.timeline-point[data-version="0"]');
             if(firstPoint) {
