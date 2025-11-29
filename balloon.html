@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Balloon Betting Calculator v2.19</title>
+    <script src="https://cdn-tailwindcss.vercel.app/"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @keyframes fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+        body { background-color: #000000; font-family: 'Inter', sans-serif; }
+        
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .mode-tab { position: relative; padding: 0.5rem 1rem; font-weight: 600; transition: all 0.2s ease; cursor: pointer; }
+        .mode-tab.active { color: #fff; }
+        .mode-tab.inactive { color: #9ca3af; }
+        .mode-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #3b82f6; }
+        
+        .config-row:hover { background-color: rgba(59, 130, 246, 0.1); transform: translateX(2px); }
+        
+        .indicator { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 4px;}
+        .indicator-green { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .indicator-purple { background: rgba(147, 51, 234, 0.2); color: #a78bfa; border: 1px solid rgba(147, 51, 234, 0.3); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.75); display: flex; align-items: center; justify-content: center; z-index: 50; animation: fade-in 0.3s ease-out; }
+        .modal-section { transition: all 0.3s ease; }
+        .modal-section.inactive { opacity: 0.3; }
+        .modal-section.active { opacity: 1; }
+        .or-divider { position: relative; text-align: center; margin: 1.875rem 0; }
+        .or-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: linear-gradient(to right, transparent, #4b5563, transparent); }
+        .or-divider span { position: relative; display: inline-block; padding: 0 1.25rem; background: #1f293b; color: #6b7280; font-weight: 600; font-size: 0.9375rem; letter-spacing: 0.05em; }
+        
+        .progress-bar { position: relative; background: #1f2937; border-radius: 0.625rem; overflow: hidden; height: 2.5rem; }
+        .progress-bar-filled { position: absolute; left: 0; top: 0; height: 100%; transition: width 0.5s ease; }
+        .progress-bar-next { position: absolute; top: 0; height: 100%; opacity: 0.7; transition: all 0.5s ease; }
+        .progress-labels { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; font-size: 0.875rem; font-weight: 600; color: white; z-index: 10; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        
+        .bet-display { background: linear-gradient(135deg, #1e293b 0%, #111827 100%); border: 2px solid #4b5563; box-shadow: 0 0 30px rgba(59, 130, 246, 0.1); }
+        .profit-positive { color: #4ade80; }
+        .profit-negative { color: #ef4444; }
+        .profit-neutral { color: #f59e0b; }
+        
+        .history-table { font-size: 0.875rem; }
+        .history-table thead th { background: #0f172a; position: sticky; top: 0; z-index: 10; }
+        .history-table tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+        
+        .profit-evolution-table { font-size: 0.875rem; }
+        .profit-evolution-table .completed-round { background-color: rgba(34, 197, 94, 0.05); }
+        .profit-evolution-table .current-round { background-color: rgba(59, 130, 246, 0.08); border-left: 3px solid #3b82f6; }
+        .profit-evolution-table td { padding: 0.4rem 0.5rem; }
+        .profit-evolution-table th { padding: 0.5rem 0.5rem; }
+        
+        .btn-player { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border: 1px solid rgba(59, 130, 246, 0.3); transition: all 0.2s ease; }
+        .btn-player:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        
+        .btn-banker { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border: 1px solid rgba(239, 68, 68, 0.3); transition: all 0.2s ease; }
+        .btn-banker:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+
+        .btn-tie { background: linear-gradient(135deg, #58508d 0%, #3d3b6b 100%); border: 1px solid rgba(167, 139, 250, 0.3); transition: all 0.2s ease; }
+        .btn-tie:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(88, 80, 141, 0.3); }
+        
+        .btn-loss { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border: 1px solid rgba(245, 158, 11, 0.3); transition: all 0.2s ease; }
+        .btn-loss:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3); }
+        
+        .exit-strategy-box { background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); border: 2px solid #10b981; }
+    
+        .prob-meter-container { background: #1f2937; border-radius: 0.5rem; overflow: hidden; position: relative; height: 2.5rem; }
+        .prob-meter-bar { height: 100%; transition: width 0.5s ease; background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+
+// ===== CORE CALCULATION ENGINE =====
+
+const BANKER_PAYOUT_RATE = 1.95;
+const PLAYER_PAYOUT_RATE = 2;
+const MINI_HEDGE_UNIT_WAGER = 79;
+const MINI_HEDGE_UNIT_LOSS = 1;
+const PLAYER_WIN_PROB = 0.49317517;
+const BANKER_WIN_PROB = 0.50682483;
+const PLAYER_PAYOUT = 1.0;
+const BANKER_PAYOUT = 0.95;
+
+const calculateMiniHedgeLoss = (amount) => {
+    if (amount <= 0) return 0;
+    return Math.ceil(amount / MINI_HEDGE_UNIT_WAGER) * MINI_HEDGE_UNIT_LOSS;
+};
+
+const parseBonusConfig = (rawConfig, forceVariable = false) => {
+    const { type, params } = rawConfig;
+    let totalBettingPower = 0, totalCashDeposit = 0, fullWagerRequirement = 0, isBetFixed = false, liveBetAmount = 0, leftoverCents = 0;
+    if (forceVariable) { if (type === 'lossback') { fullWagerRequirement = (Number(params.wager_req) || 0) * (Number(params.max_bonus) || 0); } return { totalBettingPower: 0, totalCashDeposit: 0, fullWagerRequirement, isBetFixed: false, rawConfig, liveBetAmount, leftoverCents }; }
+    switch (type) {
+        case 'deposit': const bonusAmount = params.bonus_type === 'percent' ? (Number(params.deposit) || 0) * ((Number(params.bonus) || 0) / 100) : Number(params.bonus) || 0; totalCashDeposit = Number(params.deposit) || 0; totalBettingPower = totalCashDeposit + bonusAmount; const base = params.basis === 'b_only' ? bonusAmount : totalBettingPower; fullWagerRequirement = (Number(params.wager_req) || 0) * base; isBetFixed = true; break;
+        case 'gift_card_betmgm': const count = Number(params.card_count) || 0; if (count > 0) { const cardData = (Number(params.denomination) || 25) === 25 ? { cost: 29.95, bettingPower: 35, wr: 150 } : { cost: 54.95, bettingPower: 60, wr: 150 }; totalCashDeposit = count * cardData.cost; totalBettingPower = count * cardData.bettingPower; fullWagerRequirement = count * cardData.wr; isBetFixed = true; } else { isBetFixed = false; } break;
+        case 'lossback': const rate = (Number(params.rate) || 0) / 100, max_bonus_lb = Number(params.max_bonus) || 0; if (rate > 0 && max_bonus_lb > 0) { totalBettingPower = Math.ceil(max_bonus_lb / rate); totalCashDeposit = totalBettingPower; fullWagerRequirement = 0; isBetFixed = true; } else { isBetFixed = false; } break;
+        default: isBetFixed = false; break;
+    }
+    liveBetAmount = Math.floor(totalBettingPower);
+    leftoverCents = totalBettingPower - liveBetAmount;
+    return { totalBettingPower, totalCashDeposit, fullWagerRequirement, isBetFixed, rawConfig, liveBetAmount, leftoverCents };
+};
+
+const calculateProfitScenario = (configA, configB, betA, betB, totalCapitalOverride = null) => {
+    const cashDepositA = configA.isBetFixed ? configA.totalCashDeposit : betA;
+    const cashDepositB = configB.isBetFixed ? configB.totalCashDeposit : betB;
+    const totalCapital = totalCapitalOverride !== null ? totalCapitalOverride : cashDepositA + cashDepositB;
+    const returnA = betA * (configA.rawConfig.side === 'Player' ? PLAYER_PAYOUT_RATE : BANKER_PAYOUT_RATE);
+    const postLiveWagerA = configA.rawConfig.type !== 'lossback' ? configA.fullWagerRequirement - betA : 0;
+    const wagerLossA = calculateMiniHedgeLoss(postLiveWagerA);
+    const finalBalanceA = (returnA - wagerLossA) + configA.leftoverCents;
+    let finalBalanceB_if_A_wins = 0, lossbackReceivedB = 0, lossbackUnlockLossB = 0;
+    if (configB.rawConfig.type === 'lossback') { const rateB = (Number(configB.rawConfig.params.rate) || 0) / 100, potentialBonus = betB * rateB; lossbackReceivedB = Math.min(potentialBonus, Number(configB.rawConfig.params.max_bonus) || 0); const lossbackWagerReqB = lossbackReceivedB * (Number(configB.rawConfig.params.wager_req) || 0); lossbackUnlockLossB = calculateMiniHedgeLoss(lossbackWagerReqB); finalBalanceB_if_A_wins = lossbackReceivedB - lossbackUnlockLossB; }
+    const profitA_wins = finalBalanceA + finalBalanceB_if_A_wins - totalCapital;
+    const returnB = betB * (configB.rawConfig.side === 'Player' ? PLAYER_PAYOUT_RATE : BANKER_PAYOUT_RATE);
+    const postLiveWagerB = configB.rawConfig.type !== 'lossback' ? configB.fullWagerRequirement - betB : 0;
+    const wagerLossB = calculateMiniHedgeLoss(postLiveWagerB);
+    const finalBalanceB = (returnB - wagerLossB) + configB.leftoverCents;
+    let finalBalanceA_if_B_wins = 0, lossbackReceivedA = 0, lossbackUnlockLossA = 0;
+    if (configA.rawConfig.type === 'lossback') { const rateA = (Number(configA.rawConfig.params.rate) || 0) / 100, potentialBonus = betA * rateA; lossbackReceivedA = Math.min(potentialBonus, Number(configA.rawConfig.params.max_bonus) || 0); const lossbackWagerReqA = lossbackReceivedA * (Number(configA.rawConfig.params.wager_req) || 0); lossbackUnlockLossA = calculateMiniHedgeLoss(lossbackWagerReqA); finalBalanceA_if_B_wins = lossbackReceivedA - lossbackUnlockLossA; }
+    const profitB_wins = finalBalanceB + finalBalanceA_if_B_wins - totalCapital;
+    const detailsA_wins = { return: returnA, postLiveWgReq: postLiveWagerA, wagerLoss: wagerLossA, lossbackReceived: lossbackReceivedB, lossbackUnlockLoss: lossbackUnlockLossB, leftoverCents: configA.leftoverCents, fullWagerRequirement: configA.fullWagerRequirement };
+    const detailsB_wins = { return: returnB, postLiveWgReq: postLiveWagerB, wagerLoss: wagerLossB, lossbackReceived: lossbackReceivedA, lossbackUnlockLoss: lossbackUnlockLossA, leftoverCents: configB.leftoverCents, fullWagerRequirement: configB.fullWagerRequirement };
+    return { profitA: profitA_wins, profitB: profitB_wins, totalCapital, detailsA_wins, detailsB_wins };
+};
+
+const solveForTarget = (configA, configB, target) => {
+    const getTargetValue = (betA, betB, totalCapital) => { const { profitA, profitB } = calculateProfitScenario(configA, configB, betA, betB, totalCapital); switch(target) { case 'breakevenA': return profitA < 0 ? Infinity : -profitB; case 'breakevenB': return profitB < 0 ? Infinity : -profitA; default: return Math.abs(profitA - profitB); } };
+    let fixedConfig, solveConfig;
+    if (configA.isBetFixed && !configB.isBetFixed) { fixedConfig = configA; solveConfig = configB; } else if (!configA.isBetFixed && configB.isBetFixed) { fixedConfig = configB; solveConfig = configA; }
+    if (fixedConfig) { let bestSolveBet = -1, minTargetValue = Infinity; for (let currentBet = 1; currentBet <= 7500; currentBet++) { const betA = configA.isBetFixed ? fixedConfig.liveBetAmount : currentBet, betB = configB.isBetFixed ? fixedConfig.liveBetAmount : currentBet, currentTargetValue = getTargetValue(betA, betB, null); if (currentTargetValue < minTargetValue) { minTargetValue = currentTargetValue; bestSolveBet = currentBet; } } if (bestSolveBet === -1) return { noValidSolution: true }; const finalBetA = configA.isBetFixed ? fixedConfig.liveBetAmount : bestSolveBet, finalBetB = configB.isBetFixed ? fixedConfig.liveBetAmount : bestSolveBet; return { betA: finalBetA, betB: finalBetB, ...calculateProfitScenario(configA, configB, finalBetA, finalBetB) }; }
+    if (configA.isBetFixed && configB.isBetFixed) { const solveForScaling = (scaleConfig, otherConfig) => { let bestExtraCash = -1, minDifference = Infinity; const getDiff = (extraCash) => { const totalCapital = scaleConfig.totalCashDeposit + extraCash + otherConfig.totalCashDeposit, betScale = scaleConfig.liveBetAmount + extraCash, betOther = otherConfig.liveBetAmount, betA = scaleConfig === configA ? betScale : betOther, betB = scaleConfig === configB ? betScale : betOther; return getTargetValue(betA, betB, totalCapital); }; for (let currentCash = 0; currentCash <= 7500; currentCash++) { if (scaleConfig.liveBetAmount + currentCash <= 0) continue; const currentDiff = getDiff(currentCash); if (currentDiff < minDifference) { minDifference = currentDiff; bestExtraCash = currentCash; } } if (bestExtraCash === -1) return null; const finalBetScale = scaleConfig.liveBetAmount + bestExtraCash, finalCapital = scaleConfig.totalCashDeposit + bestExtraCash + otherConfig.totalCashDeposit, finalBetA = scaleConfig === configA ? finalBetScale : otherConfig.liveBetAmount, finalBetB = scaleConfig === configB ? finalBetScale : otherConfig.liveBetAmount; return { betA: finalBetA, betB: finalBetB, ...calculateProfitScenario(configA, configB, finalBetA, finalBetB, finalCapital) }; }; const resultScaleA = solveForScaling(configA, configB), resultScaleB = solveForScaling(configB, configA); if (!resultScaleA && !resultScaleB) return { noValidSolution: true }; switch (target) { case 'breakevenA': const validA_A = resultScaleA && resultScaleA.profitA >= 0, validA_B = resultScaleB && resultScaleB.profitA >= 0; if (!validA_A && !validA_B) return { noValidSolution: true }; if (validA_A && !validA_B) return resultScaleA; if (!validA_A && validA_B) return resultScaleB; return resultScaleA.profitB >= resultScaleB.profitB ? resultScaleA : resultScaleB; case 'breakevenB': const validB_A = resultScaleA && resultScaleA.profitB >= 0, validB_B = resultScaleB && resultScaleB.profitB >= 0; if (!validB_A && !validB_B) return { noValidSolution: true }; if (validB_A && !validB_B) return resultScaleA; if (!validB_A && validB_B) return resultScaleB; return resultScaleA.profitA >= resultScaleB.profitA ? resultScaleA : resultScaleB; default: if (!resultScaleA) return resultScaleB; if (!resultScaleB) return resultScaleA; return Math.min(resultScaleA.profitA, resultScaleA.profitB) >= Math.min(resultScaleB.profitA, resultScaleB.profitB) ? resultScaleA : resultScaleB; } }
+    return { error: "Cannot solve for two variable cash bets." };
+};
+
+const calculateBalloonBetSize = (bankroll, remainingWagering, lossbackValue, totalInvested) => { let maxBetSize = 0; for (let betSize = 1; betSize <= bankroll; betSize++) { const newRemainingWagering = Math.max(0, remainingWagering - betSize), miniHedgeLoss = calculateMiniHedgeLoss(newRemainingWagering), net = bankroll - betSize - miniHedgeLoss + lossbackValue - totalInvested; if (net >= 0) { maxBetSize = betSize; } else { break; } } return maxBetSize; };
+const calculateStartingBalloonBet = (config, winner) => { const details = winner === 'A' ? config.detailsA_wins : config.detailsB_wins, initialBankroll = details.return; let lossbackValue = 0; if (details.lossbackReceived > 0) { lossbackValue = details.lossbackReceived - details.lossbackUnlockLoss; } const balloonBet = calculateBalloonBetSize(initialBankroll, details.postLiveWgReq, lossbackValue, config.totalCapital); return Math.max(0, balloonBet); };
+const generateAllConfigurations = (rawConfigA, rawConfigB) => { const configurations = [], targets = ['equilibrium', 'breakevenA', 'breakevenB'], isDvL = (rawConfigA.type === 'deposit' && rawConfigB.type === 'lossback') || (rawConfigA.type === 'lossback' && rawConfigB.type === 'deposit'); for (const target of targets) { const configA_P = parseBonusConfig({...rawConfigA, side: 'Player'}, isDvL && rawConfigA.type === 'lossback'), configB_B = parseBonusConfig({...rawConfigB, side: 'Banker'}, isDvL && rawConfigB.type === 'lossback'), result1 = solveForTarget(configA_P, configB_B, target); if (result1 && !result1.error && !result1.noValidSolution) configurations.push({ target, siding: 'A_Player', ...result1, originalRawConfigs: { A: rawConfigA, B: rawConfigB } }); const configA_B = parseBonusConfig({...rawConfigA, side: 'Banker'}, isDvL && rawConfigA.type === 'lossback'), configB_P = parseBonusConfig({...rawConfigB, side: 'Player'}, isDvL && rawConfigB.type === 'lossback'), result2 = solveForTarget(configA_B, configB_P, target); if (result2 && !result2.error && !result2.noValidSolution) configurations.push({ target, siding: 'A_Banker', ...result2, originalRawConfigs: { A: rawConfigA, B: rawConfigB } }); } return configurations; };
+
+// ===== UI COMPONENTS =====
+
+const EditableCasinoName = ({ name, onSave, identifierClasses, casinoId }) => { const [isEditing, setIsEditing] = React.useState(false), [text, setText] = React.useState(name), inputRef = React.useRef(null); React.useEffect(() => { setText(name); }, [name]); React.useEffect(() => { if (isEditing) inputRef.current.focus(); }, [isEditing]); const handleSave = () => { onSave(text.trim() === '' ? (casinoId === 'A' ? 'Casino A' : 'Casino B') : text); setIsEditing(false); }, handleKeyDown = (e) => { if (e.key === 'Enter') handleSave(); }; if (isEditing) return <div className={`inline-block p-1 rounded-lg ${identifierClasses}`}><input ref={inputRef} type="text" value={text} onChange={(e) => setText(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} className="font-bold text-lg bg-transparent w-full text-center focus:outline-none" style={{ minWidth: '100px' }}/></div>; return <div onClick={() => setIsEditing(true)} className={`inline-block p-1 rounded-lg cursor-pointer hover:bg-gray-700 ${identifierClasses}`}><h3 className="font-bold text-lg px-2">{name}</h3></div>; };
+const BonusInput = ({ casinoId, name, onNameChange, config, setConfig, options, identifierClasses, isSingleMode = false }) => {
+    const handleTypeChange = (e) => {
+        const newType = e.target.value;
+        let newParams = {};
+        if (newType === 'gift_card_betmgm') {
+            newParams = { denomination: 25, card_count: '' };
+            if (!isSingleMode) onNameChange('BetMGM');
+        } else {
+            if (config.type === 'gift_card_betmgm' && name === 'BetMGM' && !isSingleMode) onNameChange(casinoId === 'A' ? 'Casino A' : 'Casino B');
+            if (newType === 'lossback') newParams = { rate: '', max_bonus: '', wager_req: '' };
+            else if (newType === 'deposit') newParams = { deposit: '', bonus: '', wager_req: '', basis: 'd+b', bonus_type: 'dollar' };
+        }
+        setConfig({ ...config, type: newType, params: newParams });
+    };
+    const handleParamChange = (name, value) => {
+        const isNumericField = ['deposit', 'bonus', 'wager_req', 'rate', 'max_bonus', 'denomination', 'card_count'].includes(name);
+        setConfig(prev => ({ ...prev, params: { ...prev.params, [name]: (isNumericField && value !== '') ? Number(value) : value } }));
+    };
+    const handleWheel = (e) => e.target.blur();
+    const renderParams = () => {
+        switch (config.type) {
+            case 'deposit': return (<>
+                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span><input name="deposit" placeholder="Deposit" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.deposit || ''} className="w-full p-2 pl-7 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></div>
+                <div className="flex w-full items-center bg-gray-900 border border-gray-600 rounded">
+                    <div className="relative flex-grow"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">{config.params.bonus_type === 'dollar' ? '$' : '%'}</span><input name="bonus" placeholder="Bonus" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.bonus || ''} className="w-full p-2 pl-7 bg-transparent focus:outline-none" type="number" onWheel={handleWheel} /></div>
+                    <div className="flex-shrink-0 border-l border-gray-600"><button onClick={() => handleParamChange('bonus_type', 'dollar')} className={`px-3 py-2 text-sm ${config.params.bonus_type === 'dollar' ? 'bg-gray-700 text-white' : 'bg-transparent text-gray-400'}`}>$</button><button onClick={() => handleParamChange('bonus_type', 'percent')} className={`px-3 py-2 text-sm rounded-r ${config.params.bonus_type === 'percent' ? 'bg-gray-700 text-white' : 'bg-transparent text-gray-400'}`}>%</button></div>
+                </div>
+                <div className="flex w-full">
+                    <div className="relative w-1/2"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">x</span><input name="wager_req" placeholder="WgReq" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.wager_req || ''} className="w-full p-2 pl-7 border rounded-l-lg bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></div>
+                    <select name="basis" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.basis || 'd+b'} className="w-1/2 p-2 border border-l-0 rounded-r-lg bg-gray-900 border-gray-600 text-white"><option value="d+b">Deposit+Bonus</option><option value="b_only">Bonus only</option></select>
+                </div>
+            </>);
+            case 'lossback': return (<>
+                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">%</span><input name="rate" placeholder="Lossback Rate" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.rate || ''} className="w-full p-2 pl-7 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></div>
+                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span><input name="max_bonus" placeholder="Max Bonus" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.max_bonus || ''} className="w-full p-2 pl-7 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></div>
+                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">x</span><input name="wager_req" placeholder="Wagering Req" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.wager_req || ''} className="w-full p-2 pl-7 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></div>
+            </>);
+            case 'gift_card_betmgm': return (<><select name="denomination" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.denomination || 25} className="w-full p-2 border rounded bg-gray-900 border-gray-600 text-white"><option value={25}>$25 Denomination</option><option value={50}>$50 Denomination</option></select><input name="card_count" placeholder="# of Cards" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.card_count || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" onWheel={handleWheel} /></>);
+            default: return null;
+        }
+    };
+    return <div className="bg-gray-800 p-4 rounded-lg w-full space-y-3 text-center"><EditableCasinoName name={name} onSave={onNameChange} identifierClasses={identifierClasses} casinoId={casinoId} /><select onChange={handleTypeChange} value={config.type} className="w-full p-2 border rounded bg-gray-900 border-gray-600 text-white">{options.map(opt => <option key={opt} value={opt}>{opt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace('Deposit', 'Deposit Match').replace('Lossback', 'Lossback Bonus').replace('Gift Card Betmgm', 'BetMGM Gift Card')}</option>)}</select>{renderParams()}</div>;
+};
+
+const ConfigurationTable = ({ configurations, casinoNames, onRowClick }) => {
+    if (!configurations || configurations.length === 0) return <div className="mt-6 p-6 bg-gray-800 rounded-lg text-white"><p className="text-center text-gray-400">No valid configurations found.</p></div>;
+    const processedConfigs = configurations.map(config => { const balloonBet = calculateStartingBalloonBet(config, config.profitA > config.profitB ? 'A' : 'B'); let isOpenEnded = false; if (config.profitA > config.profitB ? config.detailsA_wins.postLiveWgReq <=0 : config.detailsB_wins.postLiveWgReq <= 0) { isOpenEnded = true; } return { ...config, balloonBet, isOpenEnded }; });
+    let bestOverall = null, highestBalloonOverall = -1;
+    processedConfigs.forEach(config => { if (config.balloonBet > highestBalloonOverall) { highestBalloonOverall = config.balloonBet; bestOverall = config; } });
+    let bestNonOpenEnded = null, highestBalloonNonOpenEnded = -1;
+    processedConfigs.forEach(config => { if (!config.isOpenEnded && config.balloonBet > highestBalloonNonOpenEnded) { highestBalloonNonOpenEnded = config.balloonBet; bestNonOpenEnded = config; } });
+    const sortedConfigs = [...processedConfigs].sort((a, b) => { const order = { 'equilibrium': 0, 'breakevenA': 1, 'breakevenB': 2 }; return order[a.target] - order[b.target]; });
+    return <div className="mt-6 p-6 bg-gray-800 rounded-lg text-white animate-fade-in"><h2 className="text-2xl font-bold mb-4 text-center text-white">Select Your Starting Configuration</h2><div className="overflow-x-auto no-scrollbar"><table className="w-full text-left">
+        <thead className="text-gray-400 uppercase bg-gray-700 text-xs"><tr><th className="p-3">Strategy</th><th className="p-3">{casinoNames.A} Bet</th><th className="p-3">{casinoNames.B} Bet</th><th className="p-3">{casinoNames.A} Wins</th><th className="p-3">{casinoNames.B} Wins</th><th className="p-3">Starting Balloon</th><th className="p-3 text-center">Path</th></tr></thead>
+        <tbody>{sortedConfigs.map((config, index) => { let strategyName = config.target === 'equilibrium' ? 'Equilibrium' : `Breakeven @ ${config.target === 'breakevenA' ? casinoNames.A : casinoNames.B}`; const sideA = config.siding === 'A_Player' ? 'Player' : 'Banker', sideB = sideA === 'Player' ? 'Banker' : 'Player'; const profitAColor = config.profitA > 1.5 ? 'text-green-400' : config.profitA > -0.01 ? 'text-amber-400' : 'text-red-400', profitBColor = config.profitB > 1.5 ? 'text-green-400' : config.profitB > -0.01 ? 'text-amber-400' : 'text-red-400'; return <tr key={index} onClick={() => onRowClick(config)} className={`config-row border-b border-gray-700 bg-gray-800 cursor-pointer text-sm`}><td className="p-3 font-medium text-white">{strategyName}</td><td className="p-3"><div>${Math.floor(config.betA)}</div><div className={`text-xs ${sideA === 'Player' ? 'text-blue-400' : 'text-red-400'}`}>{sideA}</div></td><td className="p-3"><div>${Math.floor(config.betB)}</div><div className={`text-xs ${sideB === 'Player' ? 'text-blue-400' : 'text-red-400'}`}>{sideB}</div></td><td className={`p-3 ${profitAColor}`}>${config.profitA.toFixed(2)}</td><td className={`p-3 ${profitBColor}`}>${config.profitB.toFixed(2)}</td><td className="p-3 text-white font-bold">${config.balloonBet}</td><td className="p-3 text-center">{config.isOpenEnded && <span className="indicator indicator-purple">∞</span>}{config === bestNonOpenEnded && <span className="indicator indicator-green">★</span>}{config === bestOverall && <span className="indicator indicator-green">$</span>}</td></tr>; })}</tbody>
+    </table><div className="mt-4 flex justify-center space-x-6 text-sm text-gray-400"><div className="flex items-center"><span className="indicator indicator-green">★</span><span className="ml-2">Best (Non-Open-Ended)</span></div><div className="flex items-center"><span className="indicator indicator-green">$</span><span className="ml-2">Best (Overall)</span></div><div className="flex items-center"><span className="indicator indicator-purple">∞</span><span className="ml-2">Open-Ended Path</span></div></div></div></div>;
+};
+
+const BetSizeDisplay = ({ casinoName, side, betAmount, identifierClasses }) => (<div className="p-4 rounded-lg text-center flex flex-col justify-center h-full"><div className={`inline-block p-1 rounded-lg mx-auto ${identifierClasses}`}><p className="text-sm font-bold">{casinoName}</p></div><p className="text-5xl font-mono text-white mt-2 mb-2">${Math.floor(betAmount)}</p>{side && <p className={`text-xl font-bold ${side === 'Player' ? 'text-blue-300' : 'text-red-300'}`}>{side}</p>}</div>);
+const RoundZeroModal = ({ config, casinoNames, onClose, onWin }) => { if (!config) return null; const isAPlayer = config.siding === 'A_Player', playerCasinoName = isAPlayer ? casinoNames.A : casinoNames.B, bankerCasinoName = isAPlayer ? casinoNames.B : casinoNames.A, playerBet = isAPlayer ? config.betA : config.betB, bankerBet = isAPlayer ? config.betB : config.betA, playerIdentifier = isAPlayer ? 'bg-white text-black' : 'bg-gray-600 text-white', bankerIdentifier = isAPlayer ? 'bg-gray-600 text-white' : 'bg-white text-black'; const isAWinOptimal = config.profitA >= config.profitB; return <div className="modal-overlay" onClick={onClose}><div className="w-full max-w-2xl p-6 bg-gray-800 border-2 border-gray-700 rounded-lg text-white animate-fade-in relative" onClick={e => e.stopPropagation()}><h2 className="text-2xl font-bold mb-4 text-center text-white">Round 0: Initial Arbitrage</h2><p className="text-center text-gray-400 mb-6">Place the following bets at the same time on the same hand.</p><div className="flex rounded-lg overflow-hidden border-2 border-gray-700 mb-6"><div className="w-1/2 bg-blue-900 bg-opacity-40 p-4 border-r-2 border-gray-700"><BetSizeDisplay casinoName={playerCasinoName} side="Player" betAmount={playerBet} identifierClasses={playerIdentifier} /></div><div className="w-1/2 bg-red-900 bg-opacity-40 p-4"><BetSizeDisplay casinoName={bankerCasinoName} side="Banker" betAmount={bankerBet} identifierClasses={bankerIdentifier} /></div></div><h3 className="text-xl font-bold text-center text-white mb-4">Which side won?</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => onWin('A')} className={`text-white font-bold py-4 px-4 rounded-lg transition-all duration-200 text-lg ${isAWinOptimal ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'}`}>{casinoNames.A} Won</button><button onClick={() => onWin('B')} className={`text-white font-bold py-4 px-4 rounded-lg transition-all duration-200 text-lg ${!isAWinOptimal ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'}`}>{casinoNames.B} Won</button></div></div></div>; };
+
+// ===== BALLOON BETTING VIEW & COMPONENTS =====
+
+const formatCurrency = (amount, noDecimals = false, isProfit = false) => {
+    if (amount === null || amount === undefined) return '-';
+    const options = noDecimals ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+    const value = Math.abs(amount);
+    const formattedValue = value.toLocaleString('en-US', options);
+    if (amount < -0.001) return `-$${formattedValue}`;
+    if (isProfit && amount > 0.001) return `+$${formattedValue}`;
+    return `$${formattedValue}`;
+};
+
+const formatPercentage = (value) => `${(value * 100).toFixed(2)}%`;
+
+const ProgressBar = ({ completed, next, total, type }) => {
+    if (total <= 0) return null;
+    const completedPct = Math.min((completed / total) * 100, 100);
+    const nextPct = next ? Math.min((next / total) * 100, 100 - completedPct) : 0;
+    const barColor = (type === 'wagering' || type === 'profit') ? '#047857' : '#1d4ed8';
+    const nextColor = (type === 'wagering' || type === 'profit') ? '#34d399' : '#60a5fa';
+
+    return (
+        <div className="pt-4 pb-2">
+            <div className="text-sm text-gray-400 uppercase tracking-wider mb-3 font-semibold text-center">{type === 'wagering' ? 'Wagering Progress' : 'Profit Goal'}</div>
+            <div className="progress-bar">
+                <div className="progress-bar-filled" style={{ width: `${completedPct}%`, backgroundColor: barColor }}></div>
+                {next > 0 && <div className="progress-bar-next" style={{ left: `${completedPct}%`, width: `${nextPct}%`, backgroundColor: nextColor }}></div>}
+                <div className="progress-labels">
+                    <span>{formatCurrency(completed, true)} done</span>
+                    { next > 0 && <span>{formatCurrency(next, true)} next</span> }
+                    <span>{formatCurrency(total, true)} total</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ProbabilityMeter = ({ currentProbability }) => {
+    const playerNextProb = currentProbability * PLAYER_WIN_PROB;
+    const bankerNextProb = currentProbability * BANKER_WIN_PROB;
+
+    const yellowWidth = currentProbability * 100;
+    const redWidth = bankerNextProb * 100;
+    const blueWidth = playerNextProb * 100;
+
+    return (
+        <div className="pt-4 pb-2">
+            <div className="text-sm text-gray-400 uppercase tracking-wider mb-2 font-semibold text-center">Success Probability</div>
+            <div className="prob-meter-container relative">
+                <div className="absolute top-0 left-0 h-full rounded-lg bg-yellow-500" style={{ width: `${yellowWidth}%` }}></div>
+                <div className="absolute top-0 left-0 h-full rounded-lg bg-red-500 opacity-80" style={{ width: `${redWidth}%` }}></div>
+                <div className="absolute top-0 left-0 h-full rounded-lg bg-blue-500 opacity-90" style={{ width: `${blueWidth}%` }}></div>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-yellow-500 font-semibold text-sm z-10">
+                    <span>Up to Now: {formatPercentage(currentProbability)}</span>
+                </div>
+                <div className="absolute inset-y-0 flex flex-col justify-center pl-3 z-10" style={{ left: `${yellowWidth}%` }}>
+                    <div className="text-xs text-blue-500 font-semibold" style={{ lineHeight: '1.2' }}>P Win: {formatPercentage(playerNextProb)}</div>
+                    <div className="text-xs text-red-500 font-semibold" style={{ lineHeight: '1.2' }}>B Win: {formatPercentage(bankerNextProb)}</div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const LossbackBonusDisplay = ({ info }) => {
+    if (!info) return null;
+    return (
+        <div className="bg-gray-800 p-6 rounded-xl animate-fade-in border-2 border-yellow-500/50 mt-4">
+            <h3 className="text-xl font-bold text-yellow-400 mb-3">Lossback Recovery Available!</h3>
+            <p className="text-gray-300 mb-4">You can recover part of your loss by claiming the lossback bonus from <strong className="text-white">{info.casinoName}</strong>.</p>
+            <div className="space-y-2 text-sm text-gray-300">
+                <p>1. Contact support at {info.casinoName} to claim your <strong className="text-white">{formatCurrency(info.lossbackAmount)}</strong> lossback bonus.</p>
+                <p>2. Once the bonus is in your account, use the mini-hedge method <strong className="text-white">{info.unlockCost}</strong> time{info.unlockCost > 1 ? 's' : ''}.</p>
+            </div>
+            <div className="border-t border-yellow-700/50 pt-3 mt-4">
+                <div className="flex justify-between items-center"><span className="text-gray-300">Net Recovery Value:</span><span className="text-xl font-bold text-green-400">{formatCurrency(info.netValue, false, true)}</span></div>
+            </div>
+        </div>
+    );
+};
+
+const ExitStrategyDisplay = ({ exitCost, currentProfit, profitClass, lossbackInfo }) => (
+    <div className="animate-fade-in">
+        <div className="exit-strategy-box p-6 rounded-xl">
+            <h3 className="text-2xl font-bold text-white mb-5">Exit Strategy - Mini-Hedge Method</h3>
+            <div className="space-y-4 text-base">
+                <div className="flex items-start"><span className="text-green-400 font-bold mr-3">1.</span><span>Close live dealer baccarat</span></div>
+                <div className="flex items-start"><span className="text-green-400 font-bold mr-3">2.</span><span>Open RNG single player baccarat</span></div>
+                <div className="flex items-start"><span className="text-green-400 font-bold mr-3">3.</span><span>Place <strong>$39</strong> on Player and <strong>$40</strong> on Banker</span></div>
+                <div className="flex items-start"><span className="text-green-400 font-bold mr-3">4.</span><span>Press "Deal" <strong>{exitCost}</strong> time{exitCost > 1 ? 's' : ''}</span></div>
+                <div className="border-t border-green-700 pt-4 mt-4">
+                    <div className="flex justify-between"><span className="text-gray-300">Total Exit Cost:</span><span className="text-2xl font-bold text-yellow-400">{formatCurrency(exitCost, true)}</span></div>
+                    <div className="flex justify-between mt-2"><span className="text-gray-300">Final Profit:</span><span className={`text-2xl font-bold ${profitClass}`}>{formatCurrency(currentProfit, false, true)}</span></div>
+                </div>
+            </div>
+        </div>
+        <LossbackBonusDisplay info={lossbackInfo} />
+    </div>
+);
+
+const StrategyCompleteDisplay = ({ currentBankroll, currentProfit, profitClass, isLoss = false, targetMet = false, onContinue, onExit, onUndo, onReset, historyLength, lossbackInfo }) => {
+    return (
+        <div className="space-y-4">
+            <div className={`${isLoss ? 'bg-red-900/30 border-red-700/50' : 'bg-green-900/30 border-green-700/50'} p-6 rounded-xl animate-fade-in`}>
+                <div className="text-center mb-5">
+                    <h3 className="text-3xl font-bold text-white">{isLoss ? 'Strategy Failed' : (targetMet ? 'Profit Target Met!' : 'Strategy Complete!')}</h3>
+                    <p className="mt-1 text-gray-300">{isLoss ? 'Your bet lost.' : (targetMet ? 'You can exit now or continue ballooning.' : 'Wagering requirement met. Withdraw your balance.')}</p>
+                </div>
+                {!isLoss && <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 text-center"><p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">FINAL BALANCE</p><p className="text-3xl font-bold text-green-400 my-1">{formatCurrency(currentBankroll)}</p></div>}
+                <div className="mt-4 text-center"><span className="text-white">{isLoss ? 'Final Loss:' : 'Final Profit:'} </span><span className={`text-2xl font-bold ${profitClass}`}>{formatCurrency(currentProfit, false, true)}</span></div>
+                {targetMet && (
+                    <div className="grid grid-cols-2 gap-4 mt-6">
+                         <button onClick={onContinue} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg">Continue Ballooning</button>
+                         <button onClick={onExit} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg">Exit Now</button>
+                    </div>
+                )}
+            </div>
+            <LossbackBonusDisplay info={lossbackInfo} />
+            {historyLength > 1 && (
+                <div className="flex gap-2 justify-center pt-2">
+                    <button onClick={onUndo} className="bg-gray-700 text-white font-medium py-2 px-4 rounded-lg hover:bg-gray-600 transition text-sm">Undo</button>
+                    <button onClick={onReset} className="bg-gray-700 text-white font-medium py-2 px-4 rounded-lg hover:bg-gray-600 transition text-sm">Reset</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const CustomBetModal = ({ isOpen, onClose, maxBet, onStandardSubmit, onComplexSubmit, onStandardLoss }) => {
+    const [activeSection, setActiveSection] = React.useState(null);
+    const [standardAmount, setStandardAmount] = React.useState('');
+    const [customWagered, setCustomWagered] = React.useState('');
+    const [customReturned, setCustomReturned] = React.useState('');
+    const [error, setError] = React.useState('');
+
+    React.useEffect(() => {
+        if(isOpen) {
+            setActiveSection(null);
+            setStandardAmount('');
+            setCustomWagered('');
+            setCustomReturned('');
+            setError('');
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleStandardSubmit = (side) => {
+        const amount = parseFloat(standardAmount);
+        if (isNaN(amount) || amount <= 0) { setError('Please enter a valid amount.'); return; }
+        if (amount > maxBet) { setError(`Amount cannot exceed bankroll ($${maxBet.toFixed(2)})`); return; }
+        onStandardSubmit(side, amount, 'custom');
+        onClose();
+    };
+
+    const handleStandardLossSubmit = () => {
+        const amount = parseFloat(standardAmount);
+        if (isNaN(amount) || amount <= 0) { setError('Please enter a valid amount.'); return; }
+        if (amount > maxBet) { setError(`Amount cannot exceed bankroll ($${maxBet.toFixed(2)})`); return; }
+        onStandardLoss(amount, 'custom');
+        onClose();
+    }
+
+    const handleComplexSubmit = () => {
+        const wagered = parseFloat(customWagered);
+        const returned = parseFloat(customReturned);
+        if (isNaN(wagered) || wagered <= 0) { setError('Please enter a valid wagered amount.'); return; }
+        if (wagered > maxBet) { setError(`Wagered cannot exceed bankroll ($${maxBet.toFixed(2)})`); return; }
+        if (isNaN(returned) || returned < 0) { setError('Please enter a valid returned amount.'); return; }
+        onComplexSubmit(wagered, returned);
+        onClose();
+    };
+    
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 w-full max-w-lg transform transition-all bg-[#1f293b]" onClick={e => e.stopPropagation()}>
+                <h3 className="text-2xl font-bold text-white mb-8">Custom Bet Entry</h3>
+                <div className={`modal-section ${activeSection === 'complex' ? 'inactive' : 'active'}`}>
+                    <div className="space-y-5">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-500 mb-2">Standard Bet Amount</label>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">$</span>
+                                <input type="number" value={standardAmount} onChange={e => setStandardAmount(e.target.value)} onFocus={() => setActiveSection('standard')} className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-9 pr-4 py-4 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-xl font-medium" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <button onClick={() => handleStandardSubmit('player')} className="btn-player text-white font-semibold py-4 rounded-lg"><div className="text-sm opacity-75 mb-0.5">RECORD</div><div>PLAYER WIN</div></button>
+                            <button onClick={() => handleStandardSubmit('banker')} className="btn-banker text-white font-semibold py-4 rounded-lg"><div className="text-sm opacity-75 mb-0.5">RECORD</div><div>BANKER WIN</div></button>
+                            <button onClick={handleStandardLossSubmit} className="bg-gray-700 text-white font-semibold py-4 rounded-lg hover:bg-gray-600 transition"><div className="text-sm opacity-75 mb-0.5">RECORD</div><div>LOSS</div></button>
+                        </div>
+                    </div>
+                </div>
+                <div className="or-divider"><span>OR</span></div>
+                <div className={`modal-section ${activeSection === 'standard' ? 'inactive' : 'active'}`}>
+                     <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 mb-2">Total Wagered</label>
+                                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">$</span><input type="number" value={customWagered} onChange={e => setCustomWagered(e.target.value)} onFocus={() => setActiveSection('complex')} className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-9 pr-4 py-3 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="0.00" /></div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500 mb-2">Total Returned</label>
+                                <div className="relative"><span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">$</span><input type="number" value={customReturned} onChange={e => setCustomReturned(e.target.value)} onFocus={() => setActiveSection('complex')} className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-9 pr-4 py-3 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="0.00" /></div>
+                            </div>
+                        </div>
+                        <button onClick={handleComplexSubmit} className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all transform hover:scale-105 shadow-lg shadow-green-600/20">Submit Complex Bet</button>
+                    </div>
+                </div>
+                {error && <div className="text-red-400 text-base mt-5">{error}</div>}
+                <button onClick={onClose} className="w-full mt-5 bg-gray-700/50 text-gray-400 font-medium py-3 rounded-lg hover:bg-gray-700 hover:text-gray-300 transition">Cancel</button>
+            </div>
+        </div>
+    );
+};
+
+const HighRiskFirstBet = ({ onResult, initialState }) => {
+    const [side, setSide] = React.useState('player');
+    const [outcome, setOutcome] = React.useState(null);
+
+    return (
+        <div className="animate-fade-in">
+            <h3 className="text-3xl font-bold text-white mb-1">Round 1 (High-Risk)</h3>
+            <p className="text-gray-400 mb-4 text-base">
+                Your first bet must be for the full initial balance: 
+                <strong className="text-white"> {formatCurrency(initialState.initialBetAmount, true)}</strong>.
+            </p>
+            <p className="text-gray-400 mb-5 text-base">Record the outcome below.</p>
+            <div className="space-y-5">
+                <div>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">1. Which side did you bet on?</h4>
+                    <div className="flex gap-4">
+                        <label className={`flex-1 flex items-center justify-center p-4 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer ${side === 'player' ? 'bg-blue-600/30 border-blue-500' : ''}`}>
+                            <input type="radio" name="hr-side" value="player" checked={side === 'player'} onChange={(e) => setSide(e.target.value)} className="sr-only" />
+                            <span className="font-semibold text-blue-300">Player</span>
+                        </label>
+                        <label className={`flex-1 flex items-center justify-center p-4 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer ${side === 'banker' ? 'bg-red-600/30 border-red-500' : ''}`}>
+                            <input type="radio" name="hr-side" value="banker" checked={side === 'banker'} onChange={(e) => setSide(e.target.value)} className="sr-only" />
+                            <span className="font-semibold text-red-300">Banker</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-3">2. What was the outcome?</h4>
+                    <div className="flex gap-4">
+                        <label className={`flex-1 flex items-center justify-center p-4 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer ${outcome === 'win' ? 'bg-green-600/30 border-green-500' : ''}`}>
+                            <input type="radio" name="hr-outcome" value="win" checked={outcome === 'win'} onChange={(e) => setOutcome(e.target.value)} className="sr-only" />
+                            <span className="font-semibold text-green-300">Won</span>
+                        </label>
+                        <label className={`flex-1 flex items-center justify-center p-4 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer ${outcome === 'loss' ? 'bg-red-600/30 border-red-500' : ''}`}>
+                            <input type="radio" name="hr-outcome" value="loss" checked={outcome === 'loss'} onChange={(e) => setOutcome(e.target.value)} className="sr-only" />
+                            <span className="font-semibold text-red-300">Lost</span>
+                        </label>
+                    </div>
+                </div>
+                <button onClick={() => onResult(side, outcome)} disabled={!outcome} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-600">
+                    Submit First Bet
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const OpenEndedTargetModal = ({ isOpen, onClose, onSubmit, initialProfit }) => {
+    const [profitTarget, setProfitTarget] = React.useState('');
+    const [maxBet, setMaxBet] = React.useState('5000');
+    
+    if (!isOpen) return null;
+    
+    const handleSubmit = () => {
+        const target = parseFloat(profitTarget);
+        const betLimit = parseFloat(maxBet);
+        if(isNaN(target) || target <= initialProfit) {
+            alert(`Please enter a profit target greater than your starting profit of $${initialProfit.toFixed(2)}.`);
+            return;
+        }
+        if(isNaN(betLimit) || betLimit <= 0) {
+            alert('Please enter a valid maximum bet size.');
+            return;
+        }
+        onSubmit(target, betLimit);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                <h3 className="text-2xl font-bold text-white mb-2">Open-Ended Path Detected</h3>
+                <p className="text-gray-400 mb-6">You have no wagering requirement. Set a profit goal to continue ballooning.</p>
+                <div className="space-y-4">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Profit Target</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">$</span>
+                            <input type="number" value={profitTarget} onChange={e => setProfitTarget(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-9 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500" placeholder={`e.g., ${Math.round(initialProfit + 500)}`} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Max Bet Limit (Casino Limit)</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">$</span>
+                            <input type="number" value={maxBet} onChange={e => setMaxBet(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-9 pr-4 py-3 text-white focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                    </div>
+                    <button onClick={handleSubmit} className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition">Start Open-Ended Ballooning</button>
+                    <button onClick={onClose} className="w-full bg-gray-700/50 text-gray-400 font-medium py-3 rounded-lg hover:bg-gray-700 hover:text-gray-300 transition">Cancel and Exit</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const RefinedBettingControls = ({
+    currentBetSize, playerProfit, bankerProfit, lossProfit, exitProfit,
+    onPlayerWin, onBankerWin, onTie, onLoss, onExit, onCustom,
+    onUndo, onReset, isUndoResetVisible, progressProps
+}) => {
+    return (
+        <div className="bg-gray-800 p-6 rounded-lg w-full flex flex-col space-y-5">
+            <div className="bet-display rounded-xl p-6 text-center">
+                <div className="text-sm text-gray-400 uppercase tracking-widest mb-1 font-semibold">Optimal Bet Size</div>
+                <div className="text-6xl font-black text-white tracking-tight">${Math.floor(currentBetSize)}</div>
+                {progressProps.progressBar}
+                {progressProps.probabilityMeter}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+                <button onClick={onPlayerWin} className="btn-player text-white font-bold p-3 rounded-xl flex flex-col items-center justify-center h-28">
+                    <span className="text-sm uppercase tracking-wider opacity-80">Record Win</span>
+                    <span className="text-2xl font-bold uppercase my-1">PLAYER</span>
+                    <span className="text-sm font-semibold text-green-300">{formatCurrency(playerProfit, false, true)}</span>
+                </button>
+                <button onClick={onTie} className="btn-tie text-white font-bold p-3 rounded-xl flex flex-col items-center justify-center h-28">
+                    <span className="text-sm uppercase tracking-wider opacity-80">Record</span>
+                    <span className="text-2xl font-bold uppercase my-1">TIE</span>
+                    <span className="text-sm font-semibold text-gray-300">Push / Wagering Met</span>
+                </button>
+                <button onClick={onBankerWin} className="btn-banker text-white font-bold p-3 rounded-xl flex flex-col items-center justify-center h-28">
+                    <span className="text-sm uppercase tracking-wider opacity-80">Record Win</span>
+                    <span className="text-2xl font-bold uppercase my-1">BANKER</span>
+                    <span className="text-sm font-semibold text-green-300">{formatCurrency(bankerProfit, false, true)}</span>
+                </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+                <button onClick={onLoss} className="btn-loss text-white font-medium py-3 rounded-lg flex flex-col items-center justify-center">
+                    <span className="text-sm uppercase">Record Loss</span>
+                    <span className="text-base font-bold">{formatCurrency(lossProfit, false, true)}</span>
+                </button>
+                <button onClick={onExit} className="bg-green-700 hover:bg-green-800 transition-colors text-white font-medium py-3 rounded-lg flex flex-col items-center justify-center">
+                    <span className="text-sm uppercase">Exit Now</span>
+                    <span className="text-base font-bold">{formatCurrency(exitProfit, false, true)}</span>
+                </button>
+                <button onClick={onCustom} className="bg-gray-700 hover:bg-gray-600 transition-colors text-white font-medium py-3 rounded-lg flex flex-col items-center justify-center">
+                    <span className="text-sm uppercase">Custom Bet</span>
+                    <span className="text-base font-bold">...</span>
+                </button>
+            </div>
+            {isUndoResetVisible && (
+                <div className="pt-2 flex justify-center gap-2">
+                    <button onClick={onUndo} className="bg-gray-700/50 text-white font-medium py-2 px-5 rounded-lg hover:bg-gray-600/50 transition text-sm">Undo</button>
+                    <button onClick={onReset} className="bg-gray-700/50 text-white font-medium py-2 px-5 rounded-lg hover:bg-gray-600/50 transition text-sm">Reset</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
+const BalloonBettingView = ({ balloonInitialState, casinoNames, onBack }) => {
+    const { mode, initialState } = balloonInitialState;
+    const [history, setHistory] = React.useState(() => {
+        let firstState;
+        if (mode === 'dual') {
+            const { config, winner, isOpenEnded, profitTarget, maxBetLimit, profitForegone } = initialState;
+            const details = winner === 'A' ? config.detailsA_wins : config.detailsB_wins;
+            const lossbackValue = details.lossbackReceived > 0 ? details.lossbackReceived - details.lossbackUnlockLoss : 0;
+            const didPlayerWinRound0 = (winner === 'A' && config.siding === 'A_Player') || (winner === 'B' && config.siding === 'A_Banker');
+            const round0Prob = didPlayerWinRound0 ? PLAYER_WIN_PROB : BANKER_WIN_PROB;
+            const initialProfit = (details.return - calculateMiniHedgeLoss(details.postLiveWgReq) + lossbackValue) - config.totalCapital;
+            
+            let round0BetType, round0BetSize;
+            if (winner === 'A') {
+                round0BetSize = config.betA;
+                round0BetType = config.siding === 'A_Player' ? 'player' : 'banker';
+            } else { // winner is 'B'
+                round0BetSize = config.betB;
+                round0BetType = config.siding === 'A_Player' ? 'banker' : 'player';
+            }
+            const roundZeroData = { round: '0', betType: round0BetType, betSize: round0BetSize, roundProfit: initialProfit, wgreqAfter: details.postLiveWgReq, lossToFinish: calculateMiniHedgeLoss(details.postLiveWgReq), winProfit: winner === 'A' ? config.profitA : config.profitB, probability: round0Prob, balanceAfter: details.return, totalProfit: initialProfit };
+            
+            firstState = { mode, isOpenEnded, profitTarget, maxBetLimit, initialBetAmount: 0, currentBankroll: details.return, currentWagering: details.postLiveWgReq, lossbackValue, totalInvested: config.totalCapital, roundNumber: 1, path: [roundZeroData], isComplete: details.postLiveWgReq <= 0 && !isOpenEnded, isExitMode: false, cumulativeProbability: round0Prob, fullWagerRequirement: details.fullWagerRequirement, highRiskFirstBetDone: true, targetMet: false, profitForegone };
+        } else { // Single Casino
+             const { type, bankroll, wagering, totalInvested, fullWagerRequirement, profitForegone } = initialState;
+             firstState = { mode, isOpenEnded: false, profitTarget: null, maxBetLimit: 5000, initialBetAmount: bankroll, currentBankroll: bankroll, currentWagering: wagering, lossbackValue: 0, totalInvested: totalInvested, roundNumber: 1, path: [], isComplete: wagering <= 0, isExitMode: false, cumulativeProbability: 1.0, fullWagerRequirement: fullWagerRequirement, highRiskFirstBetDone: type === 'rng', targetMet: false, profitForegone: profitForegone };
+        }
+        return [firstState];
+    });
+
+    const [isCustomModalOpen, setIsCustomModalOpen] = React.useState(false);
+
+    const balloonState = history[history.length - 1];
+    
+    const isSingleCasinoInitialState = balloonState.mode === 'single' && balloonState.path.length === 0;
+
+    let currentBetSize = calculateBalloonBetSize(balloonState.currentBankroll, balloonState.currentWagering, balloonState.lossbackValue, balloonState.totalInvested);
+    if (balloonState.isOpenEnded && balloonState.maxBetLimit) {
+        currentBetSize = Math.min(currentBetSize, balloonState.maxBetLimit);
+    }
+        
+    const updateState = (newState) => setHistory([...history, newState]);
+
+    const handleHighRiskResult = (side, outcome) => {
+        const currentState = balloonState;
+        if (outcome === 'win') {
+            const payout = side === 'player' ? PLAYER_PAYOUT : BANKER_PAYOUT;
+            const betProbability = side === 'player' ? PLAYER_WIN_PROB : BANKER_WIN_PROB;
+            const winBankroll = currentState.initialBetAmount * (1 + payout);
+            const newRemainingWagering = Math.max(0, currentState.fullWagerRequirement - currentState.initialBetAmount);
+            const miniHedgeLoss = calculateMiniHedgeLoss(newRemainingWagering);
+            const winProfit = winBankroll - miniHedgeLoss - currentState.totalInvested;
+            
+            updateState({
+                ...currentState,
+                currentBankroll: winBankroll,
+                currentWagering: newRemainingWagering,
+                roundNumber: 2,
+                highRiskFirstBetDone: true,
+                cumulativeProbability: betProbability,
+                isComplete: newRemainingWagering <= 0,
+                path: [{ round: '1 (High-Risk)', betType: side, betSize: currentState.initialBetAmount, wgreqAfter: newRemainingWagering, lossToFinish: miniHedgeLoss, winProfit, roundProfit: winProfit, probability: betProbability, balanceAfter: winBankroll, totalProfit: winProfit }]
+            });
+        } else { // Loss
+            const lossProfit = -currentState.totalInvested;
+            updateState({
+                ...currentState,
+                currentBankroll: 0,
+                currentWagering: 0,
+                isComplete: true,
+                highRiskFirstBetDone: true,
+                path: [{ round: '1 (High-Risk)', betType: side, betSize: currentState.initialBetAmount, wgreqAfter: 0, lossToFinish: 0, winProfit: lossProfit, roundProfit: lossProfit, probability: 1 - (side === 'player' ? PLAYER_WIN_PROB : BANKER_WIN_PROB), balanceAfter: 0, totalProfit: lossProfit }]
+            });
+        }
+    };
+
+    const makeBet = (side, betSize, betStyle = 'normal') => {
+        const currentState = balloonState;
+        const oldProfit = isSingleCasinoInitialState ? 0 : currentState.currentBankroll - calculateMiniHedgeLoss(currentState.currentWagering) + currentState.lossbackValue - currentState.totalInvested;
+        const payout = side === 'player' ? PLAYER_PAYOUT : BANKER_PAYOUT;
+        const betProbability = side === 'player' ? PLAYER_WIN_PROB : BANKER_WIN_PROB;
+        const winBankroll = currentState.currentBankroll + payout * betSize;
+        const newRemainingWagering = Math.max(0, currentState.currentWagering - betSize);
+        const miniHedgeLoss = calculateMiniHedgeLoss(newRemainingWagering);
+        const winProfit = winBankroll - miniHedgeLoss + currentState.lossbackValue - currentState.totalInvested;
+        let roundLabel = currentState.roundNumber.toString();
+        if (betStyle === 'custom') roundLabel += ' (Custom)';
+        
+        const isComplete = !currentState.isOpenEnded && newRemainingWagering <= 0;
+        const targetMet = !currentState.targetMet && currentState.isOpenEnded && winProfit >= currentState.profitTarget;
+        
+        updateState({
+            ...currentState,
+            currentBankroll: winBankroll,
+            currentWagering: newRemainingWagering,
+            roundNumber: currentState.roundNumber + 1,
+            cumulativeProbability: currentState.cumulativeProbability * betProbability,
+            isExitMode: false,
+            isComplete: isComplete,
+            targetMet: targetMet,
+            path: [...currentState.path, { round: roundLabel, betType: side, betSize, wgreqAfter: newRemainingWagering, lossToFinish: miniHedgeLoss, winProfit, roundProfit: winProfit - oldProfit, probability: currentState.cumulativeProbability * betProbability, balanceAfter: winBankroll, totalProfit: winProfit }]
+        });
+    };
+    
+    const recordTie = (betSize = currentBetSize) => {
+        const currentState = balloonState;
+        const newRemainingWagering = Math.max(0, currentState.currentWagering - betSize);
+        const miniHedgeLoss = calculateMiniHedgeLoss(newRemainingWagering);
+        const newTotalProfit = currentState.currentBankroll - miniHedgeLoss + currentState.lossbackValue - currentState.totalInvested;
+        
+        // For a tie, the profit/loss from the hand itself is always zero.
+        // The change in Total P/L comes from the reduction in future exit costs.
+        const roundProfit = 0; 
+
+        const isComplete = !currentState.isOpenEnded && newRemainingWagering <= 0;
+        const targetMet = !currentState.targetMet && currentState.isOpenEnded && newTotalProfit >= currentState.profitTarget;
+
+        updateState({
+            ...currentState,
+            currentWagering: newRemainingWagering,
+            roundNumber: currentState.roundNumber + 1,
+            isExitMode: false,
+            isComplete: isComplete,
+            targetMet: targetMet,
+            path: [...currentState.path, { round: currentState.roundNumber.toString(), betType: 'tie', betSize, wgreqAfter: newRemainingWagering, lossToFinish: miniHedgeLoss, winProfit: newTotalProfit, roundProfit: roundProfit, probability: currentState.cumulativeProbability, balanceAfter: currentState.currentBankroll, totalProfit: newTotalProfit }]
+        });
+    };
+
+
+    const makeCustomBet = (wagered, returned) => {
+        const currentState = balloonState;
+        const netChange = returned - wagered;
+        const newBankroll = currentState.currentBankroll + netChange;
+        const newRemainingWagering = Math.max(0, currentState.currentWagering - wagered);
+        const miniHedgeLoss = calculateMiniHedgeLoss(newRemainingWagering);
+        const winProfit = newBankroll - miniHedgeLoss + currentState.lossbackValue - currentState.totalInvested;
+
+        const isComplete = !currentState.isOpenEnded && newRemainingWagering <= 0;
+        const targetMet = !currentState.targetMet && currentState.isOpenEnded && winProfit >= currentState.profitTarget;
+
+        updateState({
+            ...currentState,
+            currentBankroll: newBankroll,
+            currentWagering: newRemainingWagering,
+            roundNumber: currentState.roundNumber + 1,
+            isExitMode: false,
+            isComplete: isComplete,
+            targetMet: targetMet,
+            path: [...currentState.path, { round: `${currentState.roundNumber} (Side)`, betType: 'custom', betSize: wagered, wgreqAfter: newRemainingWagering, lossToFinish: miniHedgeLoss, winProfit, roundProfit: netChange, probability: currentState.cumulativeProbability, balanceAfter: newBankroll, totalProfit: winProfit }]
+        });
+    };
+
+    const recordLoss = (betSize = currentBetSize, betStyle = 'normal') => {
+        const currentState = balloonState;
+        const newBankroll = currentState.currentBankroll - betSize;
+        const newWagering = Math.max(0, currentState.currentWagering - betSize);
+        const newHedgeLoss = calculateMiniHedgeLoss(newWagering);
+        const finalProfit = newBankroll - newHedgeLoss - currentState.totalInvested + currentState.lossbackValue;
+        const roundProfit = finalProfit - (isSingleCasinoInitialState ? 0 : (currentState.currentBankroll - calculateMiniHedgeLoss(currentState.currentWagering) + currentState.lossbackValue - currentState.totalInvested));
+        
+        let roundLabel = currentState.roundNumber.toString();
+        if (betStyle === 'custom') roundLabel += ' (Custom)';
+
+        updateState({
+            ...currentState,
+            currentBankroll: newBankroll,
+            currentWagering: newWagering,
+            isComplete: true,
+            path: [...currentState.path, { round: roundLabel, betType: 'loss', betSize, wgreqAfter: newWagering, lossToFinish: newHedgeLoss, winProfit: finalProfit, roundProfit, probability: currentState.cumulativeProbability, balanceAfter: newBankroll, totalProfit: finalProfit }]
+        });
+    };
+    
+    const handleUndo = () => { if (history.length > 1) setHistory(history.slice(0, -1)); };
+    const handleReset = () => { if (history.length > 1) setHistory(history.slice(0, 1)); };
+
+    const currentProfit = isSingleCasinoInitialState ? 0 : balloonState.currentBankroll - calculateMiniHedgeLoss(balloonState.currentWagering) + balloonState.lossbackValue - balloonState.totalInvested;
+    const profitClass = currentProfit > 1.05 ? 'profit-positive' : currentProfit < -1.05 ? 'profit-negative' : 'profit-neutral';
+    
+    const calculateButtonProfits = (betSize) => {
+        const playerWinBankroll = balloonState.currentBankroll + PLAYER_PAYOUT * betSize;
+        const bankerWinBankroll = balloonState.currentBankroll + BANKER_PAYOUT * betSize;
+        const newWageringAfterBet = Math.max(0, balloonState.currentWagering - betSize);
+        const miniHedgeLossAfterBet = calculateMiniHedgeLoss(newWageringAfterBet);
+        const playerProfit = playerWinBankroll - miniHedgeLossAfterBet + balloonState.lossbackValue - balloonState.totalInvested;
+        const bankerProfit = bankerWinBankroll - miniHedgeLossAfterBet + balloonState.lossbackValue - balloonState.totalInvested;
+        let lossProfit = balloonState.currentBankroll - betSize - miniHedgeLossAfterBet + balloonState.lossbackValue - balloonState.totalInvested;
+        return { playerProfit, bankerProfit, lossProfit };
+    };
+    
+    const lossbackRecoveryInfo = React.useMemo(() => {
+        if (initialState && initialState.mode === 'dual') {
+            const { config, winner } = initialState;
+            const losingCasinoId = winner === 'A' ? 'B' : 'A';
+            const losingConfig = config.originalRawConfigs[losingCasinoId];
+            const losingBetAmount = losingCasinoId === 'A' ? config.betB : config.betA; 
+            if (losingConfig.type === 'lossback') {
+                const rate = (Number(losingConfig.params.rate) || 0) / 100;
+                const maxBonus = Number(losingConfig.params.max_bonus) || 0;
+                const wagerReqMultiplier = Number(losingConfig.params.wager_req) || 0;
+                const potentialBonus = losingBetAmount * rate;
+                const lossbackReceived = Math.min(potentialBonus, maxBonus);
+                if (lossbackReceived > 0) {
+                    const lossbackWagerReq = lossbackReceived * wagerReqMultiplier;
+                    const lossbackUnlockCost = calculateMiniHedgeLoss(lossbackWagerReq);
+                    const netLossbackValue = lossbackReceived - lossbackUnlockCost;
+                    return { casinoName: casinoNames[losingCasinoId], lossbackAmount: lossbackReceived, unlockCost: lossbackUnlockCost, netValue: netLossbackValue };
+                }
+            }
+        }
+        return null;
+    }, [initialState, casinoNames]);
+
+    const regularButtonProfits = calculateButtonProfits(currentBetSize);
+    const exitCost = calculateMiniHedgeLoss(balloonState.currentWagering);
+    const exitProfit = balloonState.currentBankroll - exitCost + balloonState.lossbackValue - balloonState.totalInvested;
+
+    const calculateDynamicProfitTable = () => {
+        const table = [];
+        balloonState.path.forEach(round => table.push({ round: round.round, totalPL: round.totalProfit, roundPL: round.roundProfit, isCompleted: true }));
+        if (!balloonState.isComplete && !balloonState.targetMet && !balloonState.isExitMode && balloonState.highRiskFirstBetDone) {
+            let projBankroll = balloonState.currentBankroll, projWagering = balloonState.currentWagering, projRoundNum = balloonState.roundNumber;
+            let prevProfit = isSingleCasinoInitialState ? 0 : balloonState.currentBankroll - calculateMiniHedgeLoss(balloonState.currentWagering) + balloonState.lossbackValue - balloonState.totalInvested;
+            const loopLimit = 20;
+            for (let i = 0; i < loopLimit; i++) {
+                let betSize = calculateBalloonBetSize(projBankroll, projWagering, balloonState.lossbackValue, balloonState.totalInvested);
+                
+                let isMaxBetRound = false;
+                if (balloonState.isOpenEnded && balloonState.maxBetLimit && betSize >= balloonState.maxBetLimit) {
+                    betSize = balloonState.maxBetLimit;
+                    isMaxBetRound = true;
+                }
+
+                if (betSize <= 0) break;
+                
+                if (!balloonState.isOpenEnded && betSize >= projWagering) {
+                    const fullBet = betSize, minBet = Math.ceil(projWagering);
+                    const playerProfitFull = projBankroll + PLAYER_PAYOUT * fullBet - balloonState.totalInvested + balloonState.lossbackValue;
+                    const bankerProfitFull = projBankroll + BANKER_PAYOUT * fullBet - balloonState.totalInvested + balloonState.lossbackValue;
+                    table.push({ round: `${projRoundNum}F`, playerPath: playerProfitFull, bankerPath: bankerProfitFull, playerRoundPL: playerProfitFull - prevProfit, bankerRoundPL: bankerProfitFull - prevProfit });
+                    if (minBet < fullBet) {
+                        const playerProfitMin = projBankroll + PLAYER_PAYOUT * minBet - balloonState.totalInvested + balloonState.lossbackValue;
+                        const bankerProfitMin = projBankroll + BANKER_PAYOUT * minBet - balloonState.totalInvested + balloonState.lossbackValue;
+                        table.push({ round: `${projRoundNum}M`, playerPath: playerProfitMin, bankerPath: bankerProfitMin, playerRoundPL: playerProfitMin - prevProfit, bankerRoundPL: bankerProfitMin - prevProfit });
+                    }
+                    break;
+                } else {
+                    const newWageringAfterBet = Math.max(0, projWagering - betSize), exitCostAfterBet = calculateMiniHedgeLoss(newWageringAfterBet);
+                    const playerProfit = projBankroll + PLAYER_PAYOUT * betSize - exitCostAfterBet - balloonState.totalInvested + balloonState.lossbackValue;
+                    const bankerProfit = projBankroll + BANKER_PAYOUT * betSize - exitCostAfterBet - balloonState.totalInvested + balloonState.lossbackValue;
+                    
+                    let roundLabel = projRoundNum.toString();
+                    if (isMaxBetRound) roundLabel += ' (Max Bet)';
+                    table.push({ round: roundLabel, playerPath: playerProfit, bankerPath: bankerProfit, playerRoundPL: playerProfit - prevProfit, bankerRoundPL: bankerProfit - prevProfit });
+                    
+                    if (isMaxBetRound) break;
+
+                    projBankroll += PLAYER_PAYOUT * betSize; 
+                    projWagering = newWageringAfterBet;
+                    prevProfit = playerProfit;
+                    projRoundNum++;
+                }
+            }
+        }
+        return table;
+    };
+    const profitTable = calculateDynamicProfitTable();
+    const isLoss = balloonState.isComplete && currentProfit < -0.01 && balloonState.path.length > 0;
+
+    const roi = isSingleCasinoInitialState ? 0 : (balloonState.totalInvested > 0 ? (currentProfit / balloonState.totalInvested) : 0);
+    const profitMulti = isSingleCasinoInitialState ? 0 : (balloonState.profitForegone > 0 ? (currentProfit / balloonState.profitForegone) : 0);
+    
+    const winStreak = React.useMemo(() => {
+        let streak = 0;
+        for (let i = balloonState.path.length - 1; i >= 0; i--) {
+            const round = balloonState.path[i];
+            if (round.betType === 'loss') break;
+            if (round.betType === 'player' || round.betType === 'banker' || round.betType === 'custom' || round.betType === 'tie') streak++;
+        }
+        return streak;
+    }, [balloonState.path]);
+    
+    const progressProps = {
+        progressBar: <ProgressBar completed={balloonState.isOpenEnded ? currentProfit : (balloonState.fullWagerRequirement - balloonState.currentWagering)} next={balloonState.isOpenEnded ? (regularButtonProfits.playerProfit - currentProfit) : Math.min(currentBetSize, balloonState.currentWagering)} total={balloonState.isOpenEnded ? balloonState.profitTarget : balloonState.fullWagerRequirement} type={balloonState.isOpenEnded ? 'profit' : 'wagering'}/>,
+        probabilityMeter: <ProbabilityMeter currentProbability={balloonState.cumulativeProbability} />
+    };
+
+    return (
+        <div className="min-h-screen bg-black text-white p-4 md:p-8">
+            <CustomBetModal isOpen={isCustomModalOpen} onClose={() => setIsCustomModalOpen(false)} maxBet={balloonState.currentBankroll} onStandardSubmit={makeBet} onComplexSubmit={makeCustomBet} onStandardLoss={recordLoss}/>
+            <div className="max-w-7xl mx-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <button onClick={onBack} className="text-gray-400 hover:text-white">← Back to Calculator</button>
+                    <h1 className="text-3xl font-bold">Balloon Betting - Round {balloonState.roundNumber}</h1>
+                    <div className={`text-2xl font-bold ${profitClass}`}>Profit: {isSingleCasinoInitialState ? '$0.00' : formatCurrency(currentProfit, false, true)}</div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ gridTemplateRows: 'minmax(0, 1fr)' }}>
+                    <div className="lg:col-span-3 bg-gray-900/50 p-6 rounded-lg flex flex-col" style={{ minHeight: '700px' }}>
+                        <div className="flex-grow overflow-y-auto no-scrollbar">
+                            { !balloonState.highRiskFirstBetDone ? <HighRiskFirstBet onResult={handleHighRiskResult} initialState={balloonState} /> :
+                             balloonState.isComplete ? <StrategyCompleteDisplay currentBankroll={balloonState.currentBankroll} currentProfit={currentProfit} profitClass={profitClass} isLoss={isLoss} onUndo={handleUndo} onReset={handleReset} historyLength={history.length} lossbackInfo={lossbackRecoveryInfo} /> :
+                             balloonState.targetMet ? <StrategyCompleteDisplay currentBankroll={balloonState.currentBankroll} currentProfit={currentProfit} profitClass={profitClass} targetMet={true} onContinue={() => updateState({...balloonState, targetMet: false})} onExit={() => updateState({...balloonState, isComplete: true, targetMet: false})} onUndo={handleUndo} onReset={handleReset} historyLength={history.length} lossbackInfo={lossbackRecoveryInfo} /> :
+                             balloonState.isExitMode ? <ExitStrategyDisplay exitCost={exitCost} currentProfit={exitProfit} profitClass={exitProfit > 1.05 ? 'profit-positive' : exitProfit < -1.05 ? 'profit-negative' : 'profit-neutral'} lossbackInfo={lossbackRecoveryInfo} /> :
+                             (
+                                <RefinedBettingControls
+                                    currentBetSize={currentBetSize}
+                                    playerProfit={regularButtonProfits.playerProfit}
+                                    bankerProfit={regularButtonProfits.bankerProfit}
+                                    lossProfit={regularButtonProfits.lossProfit}
+                                    exitProfit={exitProfit}
+                                    onPlayerWin={() => makeBet('player', currentBetSize)}
+                                    onBankerWin={() => makeBet('banker', currentBetSize)}
+                                    onTie={() => recordTie(currentBetSize)}
+                                    onLoss={() => recordLoss()}
+                                    onExit={() => updateState({...balloonState, isExitMode: true})}
+                                    onCustom={() => setIsCustomModalOpen(true)}
+                                    onUndo={handleUndo}
+                                    onReset={handleReset}
+                                    isUndoResetVisible={history.length > 1}
+                                    progressProps={progressProps}
+                                />
+                            )}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-2 space-y-6 flex flex-col" style={{ minHeight: '700px' }}>
+                        <div className="bg-gray-800 p-6 rounded-lg flex-shrink-0">
+                            <h3 className="text-xl font-bold mb-4">Statistics</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between"><span className="text-gray-400">Bankroll:</span><span className="font-semibold">{formatCurrency(balloonState.currentBankroll)}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-400">Wagering Left:</span><span className="font-semibold">{formatCurrency(balloonState.currentWagering)}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-400">Exit Cost:</span><span className="font-semibold text-yellow-400">{formatCurrency(exitCost)}</span></div>
+                                <div className="flex justify-between"><span className="text-gray-400">Total Invested:</span><span className="font-semibold">{formatCurrency(balloonState.totalInvested)}</span></div>
+                                <div className="flex justify-between border-t border-gray-700 pt-3"><span className="text-gray-400">Current Profit:</span><span className={`font-bold text-xl ${profitClass}`}>{formatCurrency(currentProfit, false, true)}</span></div>
+                                { balloonState.profitForegone > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400 italic">Profit Foregone:</span>
+                                        <span className="font-semibold text-white italic">{formatCurrency(balloonState.profitForegone)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-around text-center pt-3">
+                                    <div><div className="text-xs text-gray-400 uppercase">Session<br/>ROI</div><div className="text-lg font-bold text-white mt-1">{formatPercentage(roi)}</div></div>
+                                    <div><div className="text-xs text-gray-400 uppercase">Win<br/>Streak</div><div className="text-lg font-bold text-white mt-1">{winStreak}</div></div>
+                                    { balloonState.profitForegone > 0 && <div><div className="text-xs text-gray-400 uppercase">Profit<br/>Multi</div><div className="text-lg font-bold text-white mt-1">{profitMulti.toFixed(1)}x</div></div> }
+                                </div>
+                            </div>
+                        </div>
+                        {profitTable.length > 0 && 
+                            <div className="bg-gray-800 p-6 rounded-lg flex-grow overflow-hidden flex flex-col">
+                                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Profit Evolution</h4>
+                                <div className="rounded-lg border border-gray-700 overflow-y-auto flex-grow no-scrollbar">
+                                    <table className="profit-evolution-table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th className="text-left font-medium text-gray-500 border-b border-gray-700 sticky top-0 bg-gray-800">Round</th>
+                                                <th className="text-center font-medium text-blue-400 border-b border-gray-700 sticky top-0 bg-gray-800">Player Path</th>
+                                                <th className="text-center font-medium text-green-400 border-b border-gray-700 sticky top-0 bg-gray-800">Actual</th>
+                                                <th className="text-center font-medium text-red-400 border-b border-gray-700 sticky top-0 bg-gray-800">Banker Path</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {profitTable.map((row, idx) => {
+                                                const isLastRow = idx === profitTable.length - 1;
+                                                let rowClass = '';
+                                                if (row.isCompleted) {
+                                                    rowClass = 'completed-round';
+                                                } else if (profitTable.findIndex(r => !r.isCompleted) === idx) {
+                                                    rowClass = 'current-round';
+                                                }
+                                                
+                                                const totalPLColor = row.totalPL >= 0.01 ? 'text-green-400' : row.totalPL <= -0.01 ? 'text-red-400' : 'text-gray-400';
+                                                const playerPathDisplay = row.playerPath ? formatCurrency(row.playerPath, false, false) : '-';
+                                                const bankerPathDisplay = row.bankerPath ? formatCurrency(row.bankerPath, false, false) : '-';
+                                                
+                                                let actualDisplay;
+                                                if (row.isCompleted) {
+                                                    const totalPLText = formatCurrency(row.totalPL, false, false);
+                                                    const roundPLText = formatCurrency(row.roundPL, false, true);
+                                                    actualDisplay = (
+                                                        <div className="flex flex-col items-center">
+                                                            <span className={`font-semibold ${totalPLColor}`}>{totalPLText}</span>
+                                                            <span className="text-xs text-gray-400">({roundPLText})</span>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    actualDisplay = <span className="text-gray-500">-</span>;
+                                                }
+
+                                                return (
+                                                    <tr key={idx} className={`${rowClass} ${isLastRow ? '' : 'border-b border-gray-700'}`}>
+                                                        <td className="font-semibold">{row.round}</td>
+                                                        <td className="text-center font-medium text-blue-400">{playerPathDisplay}</td>
+                                                        <td className="text-center">{actualDisplay}</td>
+                                                        <td className="text-center font-medium text-red-400">{bankerPathDisplay}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div className="mt-8 bg-gray-800 p-6 rounded-lg">
+                    <h4 className="text-xl font-bold text-white mb-4">Betting History</h4>
+                    <div className="overflow-auto rounded-lg border border-gray-700">
+                        <table className="history-table w-full">
+                            <thead className="text-gray-400 uppercase text-xs">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium text-center border-b border-gray-700">Round</th>
+                                    <th className="px-4 py-3 font-medium text-left border-b border-gray-700">Side</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Bet</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Balance After</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Wager Left</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Exit Cost</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Round P/L</th>
+                                    <th className="px-4 py-3 font-medium text-right border-b border-gray-700">Total P/L</th>
+                                    <th className="px-4 py-3 font-medium text-center border-b border-gray-700">Probability</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {balloonState.path.map((row, index) => (
+                                <tr key={index} className="border-b border-gray-700/50 last:border-b-0">
+                                    <td className="px-4 py-3 text-sm text-center">{row.round}</td>
+                                    <td className={`px-4 py-3 text-sm font-semibold ${row.betType === 'player' ? 'text-blue-400' : row.betType === 'banker' ? 'text-red-400' : row.betType === 'tie' ? 'text-purple-400' : 'text-gray-400'}`}>{row.betType.charAt(0).toUpperCase() + row.betType.slice(1)}</td>
+                                    <td className="px-4 py-3 text-sm text-right">{formatCurrency(row.betSize, true)}</td>
+                                    <td className="px-4 py-3 text-sm text-right font-semibold text-white">{formatCurrency(row.balanceAfter)}</td>
+                                    <td className="px-4 py-3 text-sm text-right">{formatCurrency(row.wgreqAfter, true)}</td>
+                                    <td className="px-4 py-3 text-sm text-right font-semibold text-yellow-400">{formatCurrency(row.lossToFinish, true)}</td>
+                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${row.roundProfit > 0.01 ? 'text-green-400' : row.roundProfit < -0.01 ? 'text-red-400' : 'text-amber-400'}`}>{formatCurrency(row.roundProfit, false, true)}</td>
+                                    <td className={`px-4 py-3 text-sm text-right font-semibold ${row.totalProfit > 0.01 ? 'text-green-400' : row.totalProfit < -0.01 ? 'text-red-400' : 'text-amber-400'}`}>{formatCurrency(row.totalProfit, false, false)}</td>
+                                    <td className="px-4 py-3 text-sm text-center">{formatPercentage(row.probability)}</td>
+                                </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+function App() {
+    const [mode, setMode] = React.useState('dual');
+    const [singleModeType, setSingleModeType] = React.useState('rng');
+    const [casinoNames, setCasinoNames] = React.useState({ A: 'Casino A', B: 'Casino B' });
+    const [configA, setConfigA] = React.useState({ type: 'deposit', params: { deposit: '', bonus: '', wager_req: '', basis: 'd+b', bonus_type: 'dollar' } });
+    const [configB, setConfigB] = React.useState({ type: 'none', params: {} });
+    const [configurations, setConfigurations] = React.useState(null);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [selectedConfig, setSelectedConfig] = React.useState(null);
+    const [balloonInitialState, setBalloonInitialState] = React.useState(null);
+    const [openEndedModalOpen, setOpenEndedModalOpen] = React.useState(false);
+    const [pendingOpenEnded, setPendingOpenEnded] = React.useState(null);
+    const [profitForegone, setProfitForegone] = React.useState(0);
+
+    const casinoAOptionsDual = ['deposit', 'lossback', 'gift_card_betmgm'];
+    const casinoBOptionsDual = ['none', 'deposit', 'lossback', 'gift_card_betmgm'];
+    const casinoOptionsSingle = ['deposit', 'gift_card_betmgm'];
+
+    const handleNameChange = (id, name) => setCasinoNames(p => ({ ...p, [id]: name }));
+    
+    const handleDualCalculate = () => { 
+        setIsLoading(true); 
+        setConfigurations(null); 
+        setSelectedConfig(null);
+        setProfitForegone(0);
+        setTimeout(() => { 
+            try { 
+                if (configA.type === 'gift_card_betmgm' && configB.type === 'gift_card_betmgm') { 
+                    alert("Arbitrage between two Gift Card bonuses is not supported."); 
+                    setIsLoading(false); 
+                    return; 
+                } 
+                const allConfigs = generateAllConfigurations(configA, configB).filter(c => Math.max(c.profitA, c.profitB) > -c.totalCapital * 0.5);
+                setConfigurations(allConfigs);
+
+                const equilibriumConfigs = allConfigs.filter(c => c.target === 'equilibrium');
+                if (equilibriumConfigs.length > 0) {
+                    const minProfits = equilibriumConfigs.map(c => Math.min(c.profitA, c.profitB));
+                    const bestGuaranteedProfit = Math.max(...minProfits);
+                    setProfitForegone(bestGuaranteedProfit > 0 ? bestGuaranteedProfit : 0);
+                }
+
+            } catch (e) { 
+                console.error('Calc error:', e); 
+                alert('An error occurred.'); 
+            } 
+            setIsLoading(false); 
+        }, 50); 
+    };
+
+    const handleSingleCalculate = () => {
+        const parsedConfig = parseBonusConfig(configA);
+        if(!parsedConfig.isBetFixed || parsedConfig.totalBettingPower <= 0) {
+            alert("Please fill in all bonus details for single casino mode.");
+            return;
+        }
+
+        const initialState = {
+            type: singleModeType,
+            bankroll: parsedConfig.totalBettingPower,
+            wagering: parsedConfig.fullWagerRequirement,
+            totalInvested: parsedConfig.totalCashDeposit,
+            fullWagerRequirement: parsedConfig.fullWagerRequirement
+        };
+        
+        const profitForegoneSingle = initialState.bankroll - calculateMiniHedgeLoss(initialState.wagering) - initialState.totalInvested;
+
+        setBalloonInitialState({ mode: 'single', initialState: { ...initialState, profitForegone: profitForegoneSingle } });
+    };
+
+    const handleCalculate = () => {
+        if (mode === 'dual') {
+            handleDualCalculate();
+        } else {
+            handleSingleCalculate();
+        }
+    };
+
+    const handleWinFromModal = (winner) => {
+        const details = winner === 'A' ? selectedConfig.detailsA_wins : selectedConfig.detailsB_wins;
+        if (details.postLiveWgReq <= 0) {
+            setPendingOpenEnded({config: selectedConfig, winner});
+            setOpenEndedModalOpen(true);
+        } else {
+            setBalloonInitialState({ mode: 'dual', initialState: { config: selectedConfig, winner, isOpenEnded: false, profitForegone } });
+        }
+        setSelectedConfig(null);
+    };
+
+    const handleOpenEndedSubmit = (profitTarget, maxBetLimit) => {
+        setBalloonInitialState({ mode: 'dual', initialState: { ...pendingOpenEnded, isOpenEnded: true, profitTarget, maxBetLimit, profitForegone }});
+        setOpenEndedModalOpen(false);
+        setPendingOpenEnded(null);
+    };
+    
+    const handleBackFromBalloon = () => { setBalloonInitialState(null); };
+
+    if (balloonInitialState) { return <BalloonBettingView balloonInitialState={balloonInitialState} casinoNames={casinoNames} onBack={handleBackFromBalloon} />; }
+    return (
+        <div className="min-h-screen bg-black text-white font-sans p-4 md:p-8">
+            <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-6"><h1 className="text-4xl md:text-5xl font-bold text-gray-200">Unified Balloon Betting Calculator</h1><p className="text-gray-400 mt-2">v2.19 - Production Ready</p></div>
+                <div className="flex justify-center mb-6 border-b border-gray-700">
+                    <button onClick={() => setMode('dual')} className={`mode-tab ${mode === 'dual' ? 'active' : 'inactive'}`}>Normal (Dual Casino)</button>
+                    <button onClick={() => setMode('single')} className={`mode-tab ${mode === 'single' ? 'active' : 'inactive'}`}>Single Casino</button>
+                </div>
+                {mode === 'dual' ? (
+                    <React.Fragment>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <BonusInput casinoId="A" name={casinoNames.A} onNameChange={(name) => handleNameChange('A', name)} config={configA} setConfig={setConfigA} options={casinoAOptionsDual} identifierClasses="bg-white text-black" />
+                            <BonusInput casinoId="B" name={casinoNames.B} onNameChange={(name) => handleNameChange('B', name)} config={configB} setConfig={setConfigB} options={casinoBOptionsDual} identifierClasses="bg-gray-600 text-white" />
+                        </div>
+                        <div className="mt-6 flex flex-col items-center justify-center"><button onClick={handleCalculate} disabled={isLoading} className="w-full md:w-1/2 bg-white hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-lg transition-all duration-300 disabled:bg-gray-600 flex items-center justify-center">{isLoading ? <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : 'Calculate Optimal Strategy'}</button></div>
+                        {configurations && <ConfigurationTable configurations={configurations} casinoNames={casinoNames} onRowClick={setSelectedConfig} />}
+                        {selectedConfig && <RoundZeroModal config={selectedConfig} casinoNames={casinoNames} onClose={() => setSelectedConfig(null)} onWin={handleWinFromModal} />}
+                        {pendingOpenEnded && <OpenEndedTargetModal isOpen={openEndedModalOpen} onClose={() => { setOpenEndedModalOpen(false); setPendingOpenEnded(null); }} onSubmit={handleOpenEndedSubmit} initialProfit={pendingOpenEnded.winner === 'A' ? pendingOpenEnded.config.profitA : pendingOpenEnded.config.profitB} />}
+                    </React.Fragment>
+                ) : (
+                    <React.Fragment>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <BonusInput casinoId="A" name={casinoNames.A} onNameChange={(name) => handleNameChange('A', name)} config={configA} setConfig={setConfigA} options={casinoOptionsSingle} identifierClasses="bg-white text-black" isSingleMode={true} />
+                            <div className="bg-gray-800 p-4 rounded-lg w-full space-y-3">
+                                <h3 className="font-bold text-lg text-center text-white">Single Casino Mode</h3>
+                                <div className="space-y-2 pt-2">
+                                     <label className={`flex items-center p-3 rounded-lg cursor-pointer border-2 ${singleModeType === 'rng' ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600'}`}>
+                                        <input type="radio" name="singleModeType" value="rng" checked={singleModeType === 'rng'} onChange={(e) => setSingleModeType(e.target.value)} className="sr-only" />
+                                        <div>
+                                            <p className="font-semibold text-white">Break-Even Protection</p>
+                                            <p className="text-sm text-gray-400">Calculates bet sizes to guarantee $0 is the worst-case outcome.</p>
+                                        </div>
+                                     </label>
+                                     <label className={`flex items-center p-3 rounded-lg cursor-pointer border-2 ${singleModeType === 'high_risk' ? 'border-red-500 bg-red-500/10' : 'border-gray-600'}`}>
+                                        <input type="radio" name="singleModeType" value="high_risk" checked={singleModeType === 'high_risk'} onChange={(e) => setSingleModeType(e.target.value)} className="sr-only" />
+                                        <div>
+                                            <p className="font-semibold text-white">High-Risk Mode</p>
+                                            <p className="text-sm text-gray-400">All-or-nothing first bet. No protection, maximum upside.</p>
+                                        </div>
+                                     </label>
+                                </div>
+                            </div>
+                        </div>
+                         <div className="mt-6 flex flex-col items-center justify-center"><button onClick={handleCalculate} disabled={isLoading} className="w-full md:w-1/2 bg-white hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-lg transition-all duration-300 disabled:bg-gray-600 flex items-center justify-center">{isLoading ? '...' : 'Start Ballooning'}</button></div>
+                    </React.Fragment>
+                )}
+            </div>
+        </div>
+    );
+}
+
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container);
+root.render(<App />);
+
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baccarat Arbitrage Calculator - v1.1 (Cashback Update)</title>
+    <script src="https://cdn-tailwindcss.vercel.app/"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @keyframes fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.4); } 50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.8); } }
+        @keyframes pulse-orange { 0%, 100% { box-shadow: 0 0 5px rgba(251, 146, 60, 0.4); } 50% { box-shadow: 0 0 20px rgba(251, 146, 60, 0.8); } }
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+        .pulse-glow { animation: pulse-glow 2s infinite; }
+        .pulse-orange { animation: pulse-orange 2s infinite; }
+        body { background-color: #000000; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            animation: fade-in 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+
+// ===== CORE CALCULATION ENGINE - v1.1 with CASHBACK =====
+
+const BANKER_PAYOUT_RATE = 1.95;
+const PLAYER_PAYOUT_RATE = 2;
+const MINI_HEDGE_UNIT_WAGER = 79;
+const MINI_HEDGE_UNIT_LOSS = 1;
+
+const calculateMiniHedgeLoss = (amount) => {
+    if (amount <= 0) return 0;
+    return Math.ceil(amount / MINI_HEDGE_UNIT_WAGER) * MINI_HEDGE_UNIT_LOSS;
+};
+
+const parseBonusConfig = (rawConfig, forceVariable = false) => {
+    const { type, params } = rawConfig;
+    let totalBettingPower = 0;
+    let totalCashDeposit = 0;
+    let fullWagerRequirement = 0;
+    let isBetFixed = false;
+    let liveBetAmount = 0;
+    let leftoverCents = 0;
+
+    if (forceVariable) {
+        if (type === 'lossback') {
+            const max_bonus = Number(params.max_bonus) || 0;
+            fullWagerRequirement = (Number(params.wager_req) || 0) * max_bonus;
+        }
+        return { totalBettingPower: 0, totalCashDeposit: 0, fullWagerRequirement, isBetFixed: false, rawConfig, liveBetAmount, leftoverCents };
+    }
+
+    switch (type) {
+        case 'deposit':
+            totalCashDeposit = Number(params.deposit) || 0;
+            const bonusAmount = params.bonus_type === 'percent'
+                ? totalCashDeposit * ((Number(params.bonus) || 0) / 100)
+                : Number(params.bonus) || 0;
+            totalBettingPower = totalCashDeposit + bonusAmount;
+            const base = params.basis === 'b_only' ? bonusAmount : totalBettingPower;
+            fullWagerRequirement = (Number(params.wager_req) || 0) * base;
+            isBetFixed = true;
+            break;
+        case 'gift_card_betmgm':
+            const count = Number(params.card_count) || 0;
+            if (count > 0) {
+                const cardData = (Number(params.denomination) || 25) === 25
+                    ? { cost: 29.95, bettingPower: 35, wr: 150 }
+                    : { cost: 54.95, bettingPower: 60, wr: 150 };
+                totalCashDeposit = count * cardData.cost;
+                totalBettingPower = count * cardData.bettingPower;
+                fullWagerRequirement = count * cardData.wr;
+                isBetFixed = true;
+            } else {
+                isBetFixed = false;
+            }
+            break;
+        case 'lossback':
+            const rate = (Number(params.rate) || 0) / 100;
+            const max_bonus_lb = Number(params.max_bonus) || 0;
+            if (rate > 0 && max_bonus_lb > 0) {
+                totalBettingPower = Math.ceil(max_bonus_lb / rate);
+                totalCashDeposit = totalBettingPower;
+                fullWagerRequirement = 0; 
+                isBetFixed = true;
+            } else {
+                isBetFixed = false;
+            }
+            break;
+        case 'none':
+        default:
+            isBetFixed = false;
+            break;
+    }
+
+    liveBetAmount = Math.floor(totalBettingPower);
+    leftoverCents = totalBettingPower - liveBetAmount;
+
+    return { totalBettingPower, totalCashDeposit, fullWagerRequirement, isBetFixed, rawConfig, liveBetAmount, leftoverCents };
+};
+
+
+const calculateProfitScenario = (configA, configB, betA, betB, totalCapitalOverride = null) => {
+    const cashDepositA = configA.isBetFixed ? configA.totalCashDeposit : betA;
+    const cashDepositB = configB.isBetFixed ? configB.totalCashDeposit : betB;
+    const totalCapital = totalCapitalOverride !== null ? totalCapitalOverride : cashDepositA + cashDepositB;
+
+    // Cashback Calculation
+    const cashbackRateA = (configA.rawConfig.params.cashbackRate || 0) / 100;
+    const cashbackRateB = (configB.rawConfig.params.cashbackRate || 0) / 100;
+    const cashbackA = cashDepositA * cashbackRateA;
+    const cashbackB = cashDepositB * cashbackRateB;
+    const totalCashback = cashbackA + cashbackB;
+
+    // Scenario: A Wins
+    const returnA = betA * (configA.rawConfig.side === 'Player' ? PLAYER_PAYOUT_RATE : BANKER_PAYOUT_RATE);
+    const postLiveWagerA = configA.rawConfig.type !== 'lossback' ? configA.fullWagerRequirement - betA : 0;
+    const wagerLossA = calculateMiniHedgeLoss(postLiveWagerA);
+    const finalBalanceA = (returnA - wagerLossA) + configA.leftoverCents;
+
+    let finalBalanceB_if_A_wins = 0, lossbackReceivedB = 0, lossbackUnlockLossB = 0, lossbackWagerReqB = 0;
+    if (configB.rawConfig.type === 'lossback') {
+        const rateB = (Number(configB.rawConfig.params.rate) || 0) / 100;
+        const potentialBonus = betB * rateB;
+        lossbackReceivedB = Math.min(potentialBonus, Number(configB.rawConfig.params.max_bonus) || 0);
+        lossbackWagerReqB = lossbackReceivedB * (Number(configB.rawConfig.params.wager_req) || 0);
+        lossbackUnlockLossB = calculateMiniHedgeLoss(lossbackWagerReqB);
+        finalBalanceB_if_A_wins = lossbackReceivedB - lossbackUnlockLossB;
+    }
+    const profitA_wins = finalBalanceA + finalBalanceB_if_A_wins - totalCapital + totalCashback;
+
+    // Scenario: B Wins
+    const returnB = betB * (configB.rawConfig.side === 'Player' ? PLAYER_PAYOUT_RATE : BANKER_PAYOUT_RATE);
+    const postLiveWagerB = configB.rawConfig.type !== 'lossback' ? configB.fullWagerRequirement - betB : 0;
+    const wagerLossB = calculateMiniHedgeLoss(postLiveWagerB);
+    const finalBalanceB = (returnB - wagerLossB) + configB.leftoverCents;
+
+    let finalBalanceA_if_B_wins = 0, lossbackReceivedA = 0, lossbackUnlockLossA = 0, lossbackWagerReqA = 0;
+    if (configA.rawConfig.type === 'lossback') {
+        const rateA = (Number(configA.rawConfig.params.rate) || 0) / 100;
+        const potentialBonus = betA * rateA;
+        lossbackReceivedA = Math.min(potentialBonus, Number(configA.rawConfig.params.max_bonus) || 0);
+        lossbackWagerReqA = lossbackReceivedA * (Number(configA.rawConfig.params.wager_req) || 0);
+        lossbackUnlockLossA = calculateMiniHedgeLoss(lossbackWagerReqA);
+        finalBalanceA_if_B_wins = lossbackReceivedA - lossbackUnlockLossA;
+    }
+    const profitB_wins = finalBalanceB + finalBalanceA_if_B_wins - totalCapital + totalCashback;
+
+    const totalWithdrawal_if_A_wins = finalBalanceA + finalBalanceB_if_A_wins;
+    const totalWithdrawal_if_B_wins = finalBalanceB + finalBalanceA_if_B_wins;
+    const minWithdrawal = Math.min(totalWithdrawal_if_A_wins, totalWithdrawal_if_B_wins);
+
+    let giftCardCost = 0;
+    if (configA.rawConfig.type === 'gift_card_betmgm') giftCardCost += configA.totalCashDeposit;
+    if (configB.rawConfig.type === 'gift_card_betmgm') giftCardCost += configB.totalCashDeposit;
+
+    const detailsA_wins = {
+        return: returnA,
+        totalWgReq: configA.rawConfig.type !== 'lossback' ? configA.fullWagerRequirement : 0,
+        postLiveWgReq: postLiveWagerA,
+        wagerLoss: wagerLossA,
+        lossbackReceived: lossbackReceivedB,
+        lossbackWagerReq: lossbackWagerReqB,
+        lossbackUnlockLoss: lossbackUnlockLossB,
+        withdrawalFromWinning: finalBalanceA,
+        withdrawalFromLosing: finalBalanceB_if_A_wins
+    };
+    const detailsB_wins = {
+        return: returnB,
+        totalWgReq: configB.rawConfig.type !== 'lossback' ? configB.fullWagerRequirement : 0,
+        postLiveWgReq: postLiveWagerB,
+        wagerLoss: wagerLossB,
+        lossbackReceived: lossbackReceivedA,
+        lossbackWagerReq: lossbackWagerReqA,
+        lossbackUnlockLoss: lossbackUnlockLossA,
+        withdrawalFromWinning: finalBalanceB,
+        withdrawalFromLosing: finalBalanceA_if_B_wins
+    };
+
+    return {
+        profitA: profitA_wins, 
+        profitB: profitB_wins, 
+        totalCapital, 
+        totalCashback,
+        minWithdrawal, 
+        giftCardCost,
+        detailsA_wins,
+        detailsB_wins,
+        minProfit: Math.min(profitA_wins, profitB_wins),
+        maxProfit: Math.max(profitA_wins, profitB_wins),
+        avgProfit: (profitA_wins + profitB_wins) / 2
+    };
+};
+
+const solveForTarget = (configA, configB, target) => {
+    const getTargetValue = (betA, betB, totalCapital) => {
+        const { profitA, profitB } = calculateProfitScenario(configA, configB, betA, betB, totalCapital);
+        switch(target) {
+            case 'breakevenA':
+                return profitA < 0 ? Infinity : -profitB;
+            case 'breakevenB':
+                return profitB < 0 ? Infinity : -profitA;
+            case 'equilibrium':
+            default:
+                return Math.abs(profitA - profitB);
+        }
+    };
+
+    let fixedConfig, solveConfig;
+    if (configA.isBetFixed && !configB.isBetFixed) { fixedConfig = configA; solveConfig = configB; }
+    else if (!configA.isBetFixed && configB.isBetFixed) { fixedConfig = configB; solveConfig = configA; }
+
+    if (fixedConfig) {
+        let bestSolveBet = -1;
+        let minTargetValue = Infinity;
+        const maxBet = 7500;
+
+        for (let currentBet = 1; currentBet <= maxBet; currentBet++) {
+            const betA = configA.isBetFixed ? fixedConfig.liveBetAmount : currentBet;
+            const betB = configB.isBetFixed ? fixedConfig.liveBetAmount : currentBet;
+            const currentTargetValue = getTargetValue(betA, betB, null);
+
+            if (currentTargetValue < minTargetValue) {
+                minTargetValue = currentTargetValue;
+                bestSolveBet = currentBet;
+            }
+        }
+
+        if (bestSolveBet === -1) {
+            return { noValidSolution: true };
+        }
+
+        const finalBetA = configA.isBetFixed ? fixedConfig.liveBetAmount : bestSolveBet;
+        const finalBetB = configB.isBetFixed ? fixedConfig.liveBetAmount : bestSolveBet;
+        return { betA: finalBetA, betB: finalBetB, ...calculateProfitScenario(configA, configB, finalBetA, finalBetB) };
+    }
+
+    if (configA.isBetFixed && configB.isBetFixed) {
+        const solveForScaling = (scaleConfig, otherConfig) => {
+            let bestExtraCash = -1;
+            let minDifference = Infinity;
+
+            const getDiff = (extraCash) => {
+                const totalCapital = scaleConfig.totalCashDeposit + extraCash + otherConfig.totalCashDeposit;
+                const betScale = scaleConfig.liveBetAmount + extraCash;
+                const betOther = otherConfig.liveBetAmount;
+                const betA = scaleConfig === configA ? betScale : betOther;
+                const betB = scaleConfig === configB ? betScale : betOther;
+                return getTargetValue(betA, betB, totalCapital);
+            };
+
+            const maxExtraCash = 7500;
+            for (let currentCash = 0; currentCash <= maxExtraCash; currentCash++) {
+                if (scaleConfig.liveBetAmount + currentCash <= 0) continue;
+                const currentDiff = getDiff(currentCash);
+                if (currentDiff < minDifference) {
+                    minDifference = currentDiff;
+                    bestExtraCash = currentCash;
+                }
+            }
+
+            if (bestExtraCash === -1) return null;
+
+            const finalBetScale = scaleConfig.liveBetAmount + bestExtraCash;
+            const finalCapital = scaleConfig.totalCashDeposit + bestExtraCash + otherConfig.totalCashDeposit;
+            const finalBetA = scaleConfig === configA ? finalBetScale : otherConfig.liveBetAmount;
+            const finalBetB = scaleConfig === configB ? finalBetScale : otherConfig.liveBetAmount;
+            return { betA: finalBetA, betB: finalBetB, ...calculateProfitScenario(configA, configB, finalBetA, finalBetB, finalCapital) };
+        };
+
+        const resultScaleA = solveForScaling(configA, configB);
+        const resultScaleB = solveForScaling(configB, configA);
+
+        if (!resultScaleA && !resultScaleB) return { noValidSolution: true };
+
+        switch (target) {
+            case 'breakevenA':
+                const validA_A = resultScaleA && resultScaleA.profitA >= 0;
+                const validA_B = resultScaleB && resultScaleB.profitA >= 0;
+                if (!validA_A && !validA_B) return { noValidSolution: true };
+                if (validA_A && !validA_B) return resultScaleA;
+                if (!validA_A && validA_B) return resultScaleB;
+                return resultScaleA.profitB >= resultScaleB.profitB ? resultScaleA : resultScaleB;
+
+            case 'breakevenB':
+                const validB_A = resultScaleA && resultScaleA.profitB >= 0;
+                const validB_B = resultScaleB && resultScaleB.profitB >= 0;
+                if (!validB_A && !validB_B) return { noValidSolution: true };
+                if (validB_A && !validB_B) return resultScaleA;
+                if (!validB_A && validB_B) return resultScaleB;
+                return resultScaleA.profitA >= resultScaleB.profitA ? resultScaleA : resultScaleB;
+            
+            case 'equilibrium':
+            default:
+                if (!resultScaleA) return resultScaleB;
+                if (!resultScaleB) return resultScaleA;
+                const minProfitA = Math.min(resultScaleA.profitA, resultScaleA.profitB);
+                const minProfitB = Math.min(resultScaleB.profitA, resultScaleB.profitB);
+                return minProfitA >= minProfitB ? resultScaleA : resultScaleB;
+        }
+    }
+
+    return { error: "Cannot solve for two variable cash bets without a target bet size." };
+};
+
+const findOptimalSolution = (rawConfigA, rawConfigB) => {
+    const isDvL = (rawConfigA.type === 'deposit' && rawConfigB.type === 'lossback') || 
+                  (rawConfigA.type === 'lossback' && rawConfigB.type === 'deposit');
+
+    if (isDvL) {
+        const depositConfigRaw = rawConfigA.type === 'deposit' ? rawConfigA : rawConfigB;
+        const lossbackConfigRaw = rawConfigA.type === 'lossback' ? rawConfigA : rawConfigB;
+
+        const configA_min = rawConfigA === depositConfigRaw ? parseBonusConfig(depositConfigRaw) : parseBonusConfig(lossbackConfigRaw, true);
+        const configB_min = rawConfigB === depositConfigRaw ? parseBonusConfig(depositConfigRaw) : parseBonusConfig(lossbackConfigRaw, true);
+        const minCapitalResult = solveForTarget(configA_min, configB_min, 'equilibrium');
+
+        const configA_max = parseBonusConfig(rawConfigA);
+        const configB_max = parseBonusConfig(rawConfigB);
+        const maxValueResult = solveForTarget(configA_max, configB_max, 'equilibrium');
+
+        return {
+            isDvL: true,
+            minCapital: minCapitalResult,
+            maxValue: maxValueResult,
+        }
+    }
+
+    const isAutoGC_A = rawConfigA.type === 'gift_card_betmgm' && (rawConfigA.params.card_count === '' || !rawConfigA.params.card_count);
+    const isAutoGC_B = rawConfigB.type === 'gift_card_betmgm' && (rawConfigB.params.card_count === '' || !rawConfigB.params.card_count);
+
+    if (isAutoGC_A && isAutoGC_B) return { error: "Cannot auto-solve for two Gift Card bonuses. Please specify a card count for at least one."};
+
+    let finalConfigA = rawConfigA;
+    let finalConfigB = rawConfigB;
+
+    if (isAutoGC_A || isAutoGC_B) {
+        const gcRawConfig = isAutoGC_A ? rawConfigA : rawConfigB;
+        const otherRawConfig = isAutoGC_A ? rawConfigB : rawConfigA;
+        const otherConfig = parseBonusConfig(otherRawConfig);
+        if (!otherConfig.isBetFixed) {
+            return { error: "You must specify a number of cards for this configuration." };
+        }
+
+        const targetBetSize = otherConfig.liveBetAmount;
+        const gcPowerPerCard = (Number(gcRawConfig.params.denomination) || 25) === 25 ? 35 : 60;
+        const baseCardCount = Math.max(1, Math.round(targetBetSize / gcPowerPerCard));
+
+        let bestResult = null;
+        for (let i = 0; i < 10; i++) {
+            const cardCount = baseCardCount + i;
+            if (cardCount <= 0) continue;
+
+            const currentGcRawConfig = { ...gcRawConfig, params: { ...gcRawConfig.params, card_count: cardCount } };
+            const gcConfig = parseBonusConfig(currentGcRawConfig);
+
+            const result = solveForTarget(otherConfig, gcConfig, 'equilibrium');
+
+            if (result && !result.error && !result.noValidSolution) {
+                const otherBet = otherRawConfig.side === gcRawConfig.side ? result.betB : result.betA;
+                const isValid = otherConfig.rawConfig.type !== 'deposit' || otherBet >= otherConfig.liveBetAmount;
+
+                if (isValid) {
+                    bestResult = { ...result, card_count: cardCount };
+                    break;
+                }
+            }
+        }
+        if (bestResult) {
+            return bestResult;
+        } else {
+            return { error: "Could not find a valid solution where the bonus terms of the counterparty are met." };
+        }
+    }
+
+    return solveForTarget(parseBonusConfig(rawConfigA), parseBonusConfig(rawConfigB), 'equilibrium');
+};
+
+const calculateBreakevenSolutionConstrained = (constrainedConfig, betmgmConfig, siding) => {
+    const TARGET_THRESHOLD = 1.00;
+    const MAX_CARD_INCREMENT = 30;
+    const MAX_CASH_INCREMENT = 500;
+
+    const parsedConstrained = parseBonusConfig(constrainedConfig);
+    const initialConstrainedBet = parsedConstrained.liveBetAmount;
+
+    const equilibriumResult = findOptimalSolution(constrainedConfig, betmgmConfig);
+    if (equilibriumResult.error || !equilibriumResult.card_count) {
+        return { error: "Failed to determine equilibrium card count baseline" };
+    }
+    const baseCardCount = equilibriumResult.card_count;
+
+    for (let cardIncrement = 0; cardIncrement <= MAX_CARD_INCREMENT; cardIncrement++) {
+        const currentCardCount = baseCardCount + cardIncrement;
+        const currentBetmgmConfig = { ...betmgmConfig, params: { ...betmgmConfig.params, card_count: currentCardCount } };
+        const parsedBetmgm = parseBonusConfig(currentBetmgmConfig);
+
+        const configA = parseBonusConfig({ ...constrainedConfig, side: siding === 'A_Player' ? 'Player' : 'Banker' });
+        const configB = parseBonusConfig({ ...currentBetmgmConfig, side: siding === 'A_Player' ? 'Banker' : 'Player' });
+        
+        const cashSupplement = Math.max(0, initialConstrainedBet - parsedConstrained.liveBetAmount);
+        const totalCapital = parsedConstrained.totalCashDeposit + cashSupplement + parsedBetmgm.totalCashDeposit;
+
+        const initialTest = calculateProfitScenario(configA, configB, initialConstrainedBet, parsedBetmgm.liveBetAmount, totalCapital);
+        const initialTargetProfit = initialTest.profitA;
+
+        if (initialTargetProfit >= 0 && initialTargetProfit <= TARGET_THRESHOLD) {
+            return { ...initialTest, betA: initialConstrainedBet, betB: parsedBetmgm.liveBetAmount, card_count: currentCardCount };
+        }
+
+        if (initialTargetProfit < 0) {
+            for (let cashIncrement = 1; cashIncrement <= MAX_CASH_INCREMENT; cashIncrement++) {
+                const adjustedConstrainedBet = initialConstrainedBet + cashIncrement;
+                const adjustedCapital = totalCapital + cashIncrement;
+                const adjustedResult = calculateProfitScenario(configA, configB, adjustedConstrainedBet, parsedBetmgm.liveBetAmount, adjustedCapital);
+                const adjustedTargetProfit = adjustedResult.profitA;
+
+                if (adjustedTargetProfit >= 0 && adjustedTargetProfit <= TARGET_THRESHOLD) {
+                    return { ...adjustedResult, betA: adjustedConstrainedBet, betB: parsedBetmgm.liveBetAmount, card_count: currentCardCount };
+                }
+            }
+        }
+    }
+    return { error: `Incremental optimization failed to converge for constrained casino.` };
+};
+
+const calculateBreakevenSolutionBetMGM = (constrainedConfig, betmgmConfig, siding) => {
+    const MAX_CONSTRAINED_SEARCH_RANGE = 500;
+    const MAX_CARD_COUNT = 50;
+    const TARGET_THRESHOLD = 1.00;
+
+    let bestSolution = null;
+    let minPositiveProfitDiff = Infinity;
+
+    const parsedConstrained = parseBonusConfig(constrainedConfig);
+    const baseConstrainedBet = parsedConstrained.liveBetAmount;
+
+    for (let cardCount = 1; cardCount <= MAX_CARD_COUNT; cardCount++) {
+        const currentBetmgmConfig = { ...betmgmConfig, params: { ...betmgmConfig.params, card_count: cardCount } };
+        const parsedBetmgm = parseBonusConfig(currentBetmgmConfig);
+
+        for (let increment = 0; increment <= MAX_CONSTRAINED_SEARCH_RANGE; increment++) {
+            const currentConstrainedBet = baseConstrainedBet + increment;
+            if (currentConstrainedBet <= 0) continue;
+
+            const configA = parseBonusConfig({ ...constrainedConfig, side: siding === 'A_Player' ? 'Player' : 'Banker' });
+            const configB = parseBonusConfig({ ...currentBetmgmConfig, side: siding === 'A_Player' ? 'Banker' : 'Player' });
+            
+            const capitalA = configA.rawConfig.type === 'lossback' ? currentConstrainedBet : parsedConstrained.totalCashDeposit + increment;
+            const totalCapital = capitalA + parsedBetmgm.totalCashDeposit;
+
+            const scenario = calculateProfitScenario(configA, configB, currentConstrainedBet, parsedBetmgm.liveBetAmount, totalCapital);
+            
+            if (scenario.profitA < 0) continue;
+
+            const targetProfit = scenario.profitB;
+
+            if (targetProfit >= 0 && targetProfit < minPositiveProfitDiff) {
+                minPositiveProfitDiff = targetProfit;
+                bestSolution = { 
+                    ...scenario, 
+                    betA: currentConstrainedBet, 
+                    betB: parsedBetmgm.liveBetAmount, 
+                    card_count: cardCount 
+                };
+            }
+
+            if (minPositiveProfitDiff <= TARGET_THRESHOLD) {
+                return bestSolution;
+            }
+        }
+    }
+    return bestSolution || { error: 'Failed to find a BetMGM breakeven solution.' };
+};
+
+const isProblematicGiftCardCombination = (configA, configB) => {
+    const isAutoGC_A = configA.type === 'gift_card_betmgm' && (configA.params.card_count === '' || !configA.params.card_count);
+    const isAutoGC_B = configB.type === 'gift_card_betmgm' && (configB.params.card_count === '' || !configB.params.card_count);
+    const isConstrainedBonus_A = configA.type === 'deposit' || configA.type === 'lossback';
+    const isConstrainedBonus_B = configB.type === 'deposit' || configB.type === 'lossback';
+    return (isAutoGC_A && isConstrainedBonus_B) || (isAutoGC_B && isConstrainedBonus_A);
+};
+
+const findExpertSolutionsWithIncrementalBreakeven = (rawConfigA, rawConfigB) => {
+    const solutions = [];
+    const targets = ['equilibrium', 'breakevenA', 'breakevenB'];
+    const sidings = ['A_Player', 'A_Banker'];
+    
+    const isAutoGC_A = rawConfigA.type === 'gift_card_betmgm' && (rawConfigA.params.card_count === '' || !rawConfigA.params.card_count);
+    const betmgmIsA = isAutoGC_A;
+    const constrainedConfig = betmgmIsA ? rawConfigB : rawConfigA;
+    const betmgmConfig = betmgmIsA ? rawConfigA : rawConfigB;
+    
+    for (const target of targets) {
+        for (const siding of sidings) {
+            let result = null;
+
+            if (target === 'equilibrium') {
+                const equilibriumResult = findOptimalSolution(rawConfigA, rawConfigB);
+                if (equilibriumResult && !equilibriumResult.error) {
+                    const card_count = equilibriumResult.card_count;
+                    const eqBetmgmConfig = { ...betmgmConfig, params: { ...betmgmConfig.params, card_count } };
+                    
+                    const configA = betmgmIsA ? parseBonusConfig({ ...eqBetmgmConfig, side: siding === 'A_Player' ? 'Player' : 'Banker' }) : parseBonusConfig({ ...constrainedConfig, side: siding === 'A_Player' ? 'Player' : 'Banker' });
+                    const configB = betmgmIsA ? parseBonusConfig({ ...constrainedConfig, side: siding === 'A_Player' ? 'Banker' : 'Player' }) : parseBonusConfig({ ...eqBetmgmConfig, side: siding === 'A_Player' ? 'Banker' : 'Player' });
+                    
+                    result = solveForTarget(configA, configB, 'equilibrium');
+                    if (result && !result.noValidSolution) {
+                        result.card_count = card_count;
+                    }
+                }
+            } else {
+                const isTargetingConstrained = (betmgmIsA && target === 'breakevenB') || (!betmgmIsA && target === 'breakevenA');
+                
+                let solverResult;
+                if (isTargetingConstrained) {
+                    solverResult = calculateBreakevenSolutionConstrained(constrainedConfig, betmgmConfig, siding);
+                } else {
+                    solverResult = calculateBreakevenSolutionBetMGM(constrainedConfig, betmgmConfig, siding);
+                }
+
+                if (solverResult && !solverResult.error) {
+                    const constrainedBet = solverResult.betA;
+                    const betmgmBet = solverResult.betB;
+                    const constrainedProfit = solverResult.profitA;
+                    const betmgmProfit = solverResult.profitB;
+
+                    result = {
+                        ...solverResult,
+                        betA: betmgmIsA ? betmgmBet : constrainedBet,
+                        betB: betmgmIsA ? constrainedBet : betmgmBet,
+                        profitA: betmgmIsA ? betmgmProfit : constrainedProfit,
+                        profitB: betmgmIsA ? constrainedProfit : betmgmProfit,
+                    };
+                }
+            }
+
+            if (result && !result.error && !result.noValidSolution) {
+                solutions.push({ siding, target, ...result, betmgmIsA });
+            }
+        }
+    }
+    return solutions;
+};
+
+const findExpertSolutions = (rawConfigA, rawConfigB, forceLossbackVariable = false) => {
+    if (isProblematicGiftCardCombination(rawConfigA, rawConfigB)) {
+        return findExpertSolutionsWithIncrementalBreakeven(rawConfigA, rawConfigB);
+    }
+
+    const solutions = [];
+    const targets = ['equilibrium', 'breakevenA', 'breakevenB'];
+
+    let finalConfigA = rawConfigA;
+    let finalConfigB = rawConfigB;
+
+    const isAutoGC_A = rawConfigA.type === 'gift_card_betmgm' && (rawConfigA.params.card_count === '' || !rawConfigA.params.card_count);
+    const isAutoGC_B = rawConfigB.type === 'gift_card_betmgm' && (rawConfigB.params.card_count === '' || !rawConfigB.params.card_count);
+
+    if (isAutoGC_A || isAutoGC_B) {
+        const optimalResult = findOptimalSolution(rawConfigA, rawConfigB);
+        if (optimalResult.error) return [];
+        const solvedCardCount = optimalResult.card_count;
+        if (isAutoGC_A) finalConfigA = {...rawConfigA, params: {...rawConfigA.params, card_count: solvedCardCount }};
+        if (isAutoGC_B) finalConfigB = {...rawConfigB, params: {...rawConfigB.params, card_count: solvedCardCount }};
+    }
+
+    for(const target of targets) {
+        const configA_isLossback = finalConfigA.type === 'lossback';
+        const configB_isLossback = finalConfigB.type === 'lossback';
+        let configA = parseBonusConfig({...finalConfigA, side: 'Player'}, configA_isLossback && forceLossbackVariable);
+        let configB = parseBonusConfig({...finalConfigB, side: 'Banker'}, configB_isLossback && forceLossbackVariable);
+        let result = solveForTarget(configA, configB, target);
+        if (result && !result.error && !result.noValidSolution) {
+            if (finalConfigA.type === 'gift_card_betmgm' || finalConfigB.type === 'gift_card_betmgm') {
+                result.card_count = finalConfigA.params?.card_count || finalConfigB.params?.card_count;
+                result.betmgmIsA = finalConfigA.type === 'gift_card_betmgm';
+            }
+            solutions.push({ siding: 'A_Player', target, ...result });
+        }
+    }
+
+    for(const target of targets) {
+        const configA_isLossback = finalConfigA.type === 'lossback';
+        const configB_isLossback = finalConfigB.type === 'lossback';
+        let configA = parseBonusConfig({...finalConfigA, side: 'Banker'}, configA_isLossback && forceLossbackVariable);
+        let configB = parseBonusConfig({...finalConfigB, side: 'Player'}, configB_isLossback && forceLossbackVariable);
+        let result = solveForTarget(configA, configB, target);
+        if (result && !result.error && !result.noValidSolution) {
+            if (finalConfigA.type === 'gift_card_betmgm' || finalConfigB.type === 'gift_card_betmgm') {
+                result.card_count = finalConfigA.params?.card_count || finalConfigB.params?.card_count;
+                result.betmgmIsA = finalConfigA.type === 'gift_card_betmgm';
+            }
+            solutions.push({ siding: 'A_Banker', target, ...result });
+        }
+    }
+    return solutions;
+}
+
+// ===== UI COMPONENTS (COMPLETE WITH CASHBACK) =====
+
+const EditableCasinoName = ({ name, onSave, identifierClasses, casinoId }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [text, setText] = React.useState(name);
+    const inputRef = React.useRef(null);
+
+    React.useEffect(() => { setText(name); }, [name]);
+    React.useEffect(() => { if (isEditing) { inputRef.current.focus(); } }, [isEditing]);
+
+    const handleSave = () => {
+        if (text.trim() === '') {
+            const defaultName = casinoId === 'A' ? 'Casino A' : 'Casino B';
+            setText(defaultName);
+            onSave(defaultName);
+        } else { onSave(text); }
+        setIsEditing(false);
+    };
+    const handleKeyDown = (e) => { if (e.key === 'Enter') { handleSave(); } };
+    if (isEditing) {
+        return ( <div className={`inline-block p-1 rounded-lg ${identifierClasses}`}> <input ref={inputRef} type="text" value={text} onChange={(e) => setText(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} className="font-bold text-lg bg-transparent w-full text-center focus:outline-none" style={{ minWidth: '100px' }} /> </div> );
+    }
+    return ( <div onClick={() => setIsEditing(true)} className={`inline-block p-1 rounded-lg cursor-pointer hover:bg-gray-700 ${identifierClasses}`}> <h3 className="font-bold text-lg px-2">{name}</h3> </div> );
+};
+
+const BonusInput = ({ casinoId, name, onNameChange, config, setConfig, options, identifierClasses }) => {
+    const handleTypeChange = (e) => {
+        const newType = e.target.value;
+        let newParams = {};
+        if (newType === 'gift_card_betmgm') {
+            newParams = { denomination: 25, card_count: '' };
+            onNameChange('BetMGM');
+        } else {
+            if (config.type === 'gift_card_betmgm' && name === 'BetMGM') {
+                const defaultName = casinoId === 'A' ? 'Casino A' : 'Casino B';
+                onNameChange(defaultName);
+            }
+            if (newType === 'lossback') newParams = { rate: '', max_bonus: '', wager_req: '' };
+            else if (newType === 'deposit') newParams = { deposit: '', bonus: '', wager_req: '', basis: 'd+b', bonus_type: 'dollar' };
+            else if (newType === 'none') newParams = {};
+        }
+        setConfig({ ...config, type: newType, params: { ...newParams, cashbackRate: config.params.cashbackRate || '' } });
+    };
+
+    const handleParamChange = (name, value) => {
+        const isNumericField = ['deposit', 'bonus', 'wager_req', 'rate', 'max_bonus', 'denomination', 'cashbackRate'].includes(name);
+        let processedValue = value;
+        if (isNumericField) { processedValue = value === '' ? '' : Number(value); }
+        setConfig(prevConfig => ({ ...prevConfig, params: { ...prevConfig.params, [name]: processedValue } }));
+    };
+
+    const renderParams = () => {
+        switch (config.type) {
+            case 'deposit': return (<>
+                <input name="deposit" placeholder="Deposit ($)" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.deposit || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" />
+                <div className="flex w-full items-center bg-gray-900 border border-gray-600 rounded">
+                    <input name="bonus" placeholder="Bonus" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.bonus || ''} className="w-full p-2 bg-transparent focus:outline-none" type="number" />
+                    <div className="flex-shrink-0 border-l border-gray-600">
+                        <button onClick={() => handleParamChange('bonus_type', 'dollar')} className={`px-3 py-2 text-sm ${config.params.bonus_type === 'dollar' ? 'bg-gray-700 text-white' : 'bg-transparent text-gray-400'}`}>$</button>
+                        <button onClick={() => handleParamChange('bonus_type', 'percent')} className={`px-3 py-2 text-sm rounded-r ${config.params.bonus_type === 'percent' ? 'bg-gray-700 text-white' : 'bg-transparent text-gray-400'}`}>%</button>
+                    </div>
+                </div>
+                <div className="flex w-full">
+                    <input name="wager_req" placeholder="WgReq" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.wager_req || ''} className="w-1/2 p-2 border rounded-l-lg bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" />
+                    <select name="basis" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.basis || 'd+b'} className="w-1/2 p-2 border border-l-0 rounded-r-lg bg-gray-900 border-gray-600 text-white">
+                        <option value="d+b">Deposit+Bonus</option>
+                        <option value="b_only">Bonus only</option>
+                    </select>
+                </div>
+            </>);
+            case 'lossback': return (<>
+                <input name="rate" placeholder="Lossback Rate (%)" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.rate || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" />
+                <input name="max_bonus" placeholder="Max Bonus ($)" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.max_bonus || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" />
+                <input name="wager_req" placeholder="Wagering Requirement" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.wager_req || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="number" />
+            </>);
+            case 'gift_card_betmgm': return (<>
+                <select name="denomination" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.denomination || 25} className="w-full p-2 border rounded bg-gray-900 border-gray-600 text-white">
+                    <option value={25}>$25 Denomination</option>
+                    <option value={50}>$50 Denomination</option>
+                </select>
+                <input name="card_count" placeholder="Specify # of Cards (optional)" onChange={(e) => handleParamChange(e.target.name, e.target.value)} value={config.params.card_count || ''} className="w-full p-2 border rounded bg-gray-900 border-gray-600 placeholder-gray-400 text-white" type="text" />
+            </>);
+            default: return <p className="text-gray-400 text-sm h-full flex items-center justify-center">No bonus selected.</p>;
+        }
+    };
+    
+    return (
+        <div className="bg-gray-800 p-4 rounded-lg w-full space-y-3 text-center">
+            <EditableCasinoName name={name} onSave={onNameChange} identifierClasses={identifierClasses} casinoId={casinoId} />
+            <select onChange={handleTypeChange} value={config.type} className="w-full p-2 border rounded bg-gray-900 border-gray-600 text-white">
+                {options.map(opt => {
+                    let label = opt.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    if (opt === 'deposit') label = 'Deposit Match';
+                    if (opt === 'lossback') label = 'Lossback Bonus';
+                    if (opt === 'gift_card_betmgm') label = 'BetMGM Gift Card';
+                    return <option key={opt} value={opt}>{label}</option>;
+                })}
+            </select>
+            <div className="flex items-center space-x-2 bg-gray-900 border border-gray-600 rounded">
+                <label htmlFor={`cashback-${casinoId}`} className="pl-3 text-sm text-gray-400 whitespace-nowrap">Cashback Rate</label>
+                <input
+                    id={`cashback-${casinoId}`}
+                    name="cashbackRate"
+                    placeholder="%"
+                    onChange={(e) => handleParamChange(e.target.name, e.target.value)}
+                    value={config.params.cashbackRate || ''}
+                    className="w-full p-2 bg-transparent text-right focus:outline-none placeholder-gray-500"
+                    type="number"
+                />
+            </div>
+            {renderParams()}
+        </div>
+    );
+};
+
+const getBetCalculation = (config, betAmount, result) => {
+    let parsed;
+    if (config.type === 'gift_card_betmgm' && result && result.card_count) {
+        const tempConfig = { ...config, params: { ...config.params, card_count: result.card_count } };
+        parsed = parseBonusConfig(tempConfig);
+    } else {
+        parsed = parseBonusConfig(config);
+    }
+
+    const extraCash = betAmount - parsed.liveBetAmount;
+    let deposit = 0, bonus = 0;
+    if (config.type === 'deposit') {
+        deposit = (Number(config.params.deposit) || 0) + extraCash;
+        bonus = config.params.bonus_type === 'percent' ? (Number(config.params.deposit) || 0) * ((Number(config.params.bonus) || 0) / 100) : Number(config.params.bonus) || 0;
+    } else if (config.type === 'lossback' || config.type === 'none') {
+        deposit = betAmount;
+    } else if (config.type === 'gift_card_betmgm') {
+        const count = result.card_count || config.params.card_count;
+        let baseText = `${count} x $${config.params.denomination} Card(s)`;
+        if (extraCash > 0.01) {
+            baseText += ` + $${extraCash.toFixed(2)} Cash`;
+        }
+        return baseText;
+    }
+    if (bonus > 0) return `${deposit.toFixed(2)} (Deposit) + ${bonus.toFixed(2)} (Bonus)`;
+    return `${deposit.toFixed(2)} (Deposit)`;
+};
+
+const BetSizeDisplay = ({ casinoName, identifierClasses, betAmount, calculation }) => (
+    <div className="p-4 rounded-lg text-center flex flex-col justify-center h-full">
+        <div className={`inline-block p-1 rounded-lg mx-auto ${identifierClasses}`}>
+            <p className="text-sm font-bold">{casinoName}</p>
+        </div>
+        <p className="text-4xl font-mono text-white mt-1 mb-2">${betAmount.toFixed(2)}</p>
+        <p className="text-base text-gray-400">{calculation}</p>
+    </div>
+);
+
+const ResultDetailColumn = ({ title, details, profit, lineCount, winningCasinoName, losingCasinoName }) => {
+    const lines = [];
+    if (details.totalWgReq > 0) {
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Total Wager Req:</span> <span className="text-white">${details.totalWgReq.toFixed(2)}</span></div>);
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Post-Live Wager Req:</span> <span className="text-white">{details.postLiveWgReq > 0 ? `$${details.postLiveWgReq.toFixed(2)}` : 'None'}</span></div>);
+    }
+    lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Live Hand Return:</span> <span className="text-white">${details.return.toFixed(2)}</span></div>);
+    if (details.totalWgReq > 0 && details.postLiveWgReq > 0) {
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Mini-Hedge Loss:</span> <span className="text-orange-400">-${details.wagerLoss.toFixed(2)}</span></div>);
+    }
+    lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Withdraw from {winningCasinoName}:</span> <span className="text-white">${details.withdrawalFromWinning.toFixed(2)}</span></div>);
+    if (details.lossbackReceived > 0) {
+        lines.push(<div className="flex justify-between text-sm pt-2 mt-2 border-t border-gray-600"><span className="text-gray-400">Lossback Received at {losingCasinoName}:</span> <span className="text-green-400">+${details.lossbackReceived.toFixed(2)}</span></div>);
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Lossback Wagering at {losingCasinoName}:</span> <span className="text-white">${details.lossbackWagerReq.toFixed(2)}</span></div>);
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Lossback Unlock Loss:</span> <span className="text-orange-400">-${details.lossbackUnlockLoss.toFixed(2)}</span></div>);
+        lines.push(<div className="flex justify-between text-sm"><span className="text-gray-400">Withdraw from {losingCasinoName}:</span> <span className="text-white">${details.withdrawalFromLosing.toFixed(2)}</span></div>);
+    }
+    while (lines.length < lineCount) { lines.push(<div className="text-sm h-5">&nbsp;</div>); }
+    return (
+        <div className="bg-gray-900 p-4 rounded-lg space-y-2 flex flex-col">
+            <h3 className="text-lg font-bold text-center text-white mb-2">{title}</h3>
+            <div className="flex-grow space-y-2">{lines.map((line, i) => <React.Fragment key={i}>{line}</React.Fragment>)}</div>
+            <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-600">
+                <span className="text-green-400">Final Profit:</span> 
+                <span className="text-green-400">${profit.toFixed(2)}</span>
+            </div>
+        </div>
+    );
+};
+
+const ExpertResultsTable = ({ solutions, optimalResult, casinoNames, configA, configB, onRowClick }) => {
+    if (!solutions || solutions.length === 0) return null;
+    const processedSolutions = React.useMemo(() => {
+        const equilibrium = solutions.filter(s => s.target === 'equilibrium').sort((a, b) => Math.min(b.profitA, b.profitB) - Math.min(a.profitA, a.profitB)).map((s, i) => ({ ...s, name: i === 0 ? 'Optimal Equilibrium' : 'Alt Equilibrium' }));
+        const breakevenA = solutions.filter(s => s.target === 'breakevenA').sort((a, b) => a.siding.localeCompare(b.siding)).map((s, i) => ({ ...s, name: `Breakeven at ${casinoNames.A} ${i + 1}` }));
+        const breakevenB = solutions.filter(s => s.target === 'breakevenB').sort((a, b) => a.siding.localeCompare(b.siding)).map((s, i) => ({ ...s, name: `Breakeven at ${casinoNames.B} ${i + 1}` }));
+        return [...equilibrium, ...breakevenA, ...breakevenB];
+    }, [solutions, casinoNames.A, casinoNames.B]);
+    const optimalKey = optimalResult && optimalResult.betA !== undefined ? `${optimalResult.betA}-${optimalResult.betB}` : '';
+    
+    return (
+        <div className="mt-6 p-6 bg-gray-800 rounded-lg text-white animate-fade-in">
+            <h2 className="text-2xl font-bold mb-4 text-center text-white">All Possible Configurations</h2>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-400 uppercase bg-gray-700">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">Strategy</th>
+                            <th scope="col" className="px-6 py-3">{casinoNames.A} Bet</th>
+                            <th scope="col" className="px-6 py-3">{casinoNames.B} Bet</th>
+                            <th scope="col" className="px-6 py-3">{casinoNames.A} Wins Profit</th>
+                            <th scope="col" className="px-6 py-3">{casinoNames.B} Wins Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {processedSolutions.map((sol, index) => {
+                             const isOptimal = optimalKey && `${sol.betA}-${sol.betB}` === optimalKey;
+                             const isBreakevenA = sol.target === 'breakevenA';
+                             const isBreakevenB = sol.target === 'breakevenB';
+                             const BREAKEVEN_THRESHOLD = 1.50;
+                             const profitAColor = (sol.profitA < 0.01 || (isBreakevenA && Math.abs(sol.profitA) <= BREAKEVEN_THRESHOLD)) ? 'text-orange-400' : 'text-green-400';
+                             const profitBColor = (sol.profitB < 0.01 || (isBreakevenB && Math.abs(sol.profitB) <= BREAKEVEN_THRESHOLD)) ? 'text-orange-400' : 'text-green-400';
+                             const cardCount = sol.card_count || null;
+                             const betmgmIsA = (configA.type === 'gift_card_betmgm' && sol.betmgmIsA !== false) || (sol.betmgmIsA === true);
+                             const cardCountA = betmgmIsA ? cardCount : null;
+                             const cardCountB = !betmgmIsA ? cardCount : null;
+
+                             return (
+                                <tr key={`${sol.siding}-${sol.target}-${index}`} onClick={() => onRowClick(sol)} className={`border-b border-gray-700 cursor-pointer hover:bg-gray-700/50 ${isOptimal ? 'bg-gray-900' : 'bg-gray-800'}`}>
+                                    <td className={`px-6 py-4 font-medium text-left whitespace-nowrap ${isOptimal ? 'text-green-400' : 'text-white'}`}>{sol.name}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center space-x-1">
+                                            <span>${sol.betA ? sol.betA.toFixed(2) : '0.00'}</span>
+                                            {cardCountA && (<span className="text-xs text-gray-400">({cardCountA})</span>)}
+                                        </div>
+                                        <div className={`text-xs ${sol.siding === 'A_Player' ? 'text-blue-400' : 'text-red-400'}`}>{sol.siding === 'A_Player' ? 'Player' : 'Banker'}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center space-x-1">
+                                            <span>${sol.betB ? sol.betB.toFixed(2) : '0.00'}</span>
+                                            {cardCountB && (<span className="text-xs text-gray-400">({cardCountB})</span>)}
+                                        </div>
+                                        <div className={`text-xs ${sol.siding === 'A_Player' ? 'text-red-400' : 'text-blue-400'}`}>{sol.siding === 'A_Player' ? 'Banker' : 'Player'}</div>
+                                    </td>
+                                    <td className={`px-6 py-4 ${profitAColor}`}>${sol.profitA ? sol.profitA.toFixed(2) : '0.00'}</td>
+                                    <td className={`px-6 py-4 ${profitBColor}`}>${sol.profitB ? sol.profitB.toFixed(2) : '0.00'}</td>
+                                </tr>
+                             );
+                        })}
+                    </tbody>
+                </table>
+                <p className="text-center text-gray-500 text-xs mt-3">Click any row to see a detailed breakdown of that specific strategy.</p>
+            </div>
+        </div>
+    );
+};
+
+const MiniSolutionDisplay = ({ solution, rawConfigA, rawConfigB, casinoNames, onClose }) => {
+    if (!solution) return null;
+    const sideA = solution.siding === 'A_Player' ? 'Player' : 'Banker';
+    const sideB = solution.siding === 'A_Player' ? 'Banker' : 'Player';
+    
+    const betmgmIsA = (rawConfigA.type === 'gift_card_betmgm' && solution.betmgmIsA !== false) || (solution.betmgmIsA === true);
+
+    const finalConfigA = {...rawConfigA};
+    if (betmgmIsA && solution.card_count) { finalConfigA.params = {...finalConfigA.params, card_count: solution.card_count }; }
+    
+    const finalConfigB = {...rawConfigB};
+    if (!betmgmIsA && solution.card_count) { finalConfigB.params = {...finalConfigB.params, card_count: solution.card_count }; }
+
+    const configA_parsed = parseBonusConfig({ ...finalConfigA, side: sideA });
+    const configB_parsed = parseBonusConfig({ ...finalConfigB, side: sideB });
+    
+    const displayResult = calculateProfitScenario(configA_parsed, configB_parsed, solution.betA, solution.betB, solution.totalCapital);
+
+    const playerConfig = sideA === 'Player' ? finalConfigA : finalConfigB;
+    const bankerConfig = sideA === 'Banker' ? finalConfigA : finalConfigB;
+    const playerBet = sideA === 'Player' ? solution.betA : solution.betB;
+    const bankerBet = sideA === 'Banker' ? solution.betA : solution.betB;
+    const playerName = sideA === 'Player' ? casinoNames.A : casinoNames.B;
+    const bankerName = sideA === 'Banker' ? casinoNames.A : casinoNames.B;
+    const playerIdentifierClasses = sideA === 'Player' ? 'bg-white text-black' : 'bg-gray-600 text-white';
+    const bankerIdentifierClasses = sideA === 'Banker' ? 'bg-white text-black' : 'bg-gray-600 text-white';
+
+    const countLines = (details) => {
+        let count = 1;
+        if (details.totalWgReq > 0) { count += 2; if (details.postLiveWgReq > 0) count++; }
+        count++;
+        if (details.lossbackReceived > 0) count += 4;
+        return count;
+    };
+    const detailsPlayerWins = sideA === 'Player' ? displayResult.detailsA_wins : displayResult.detailsB_wins;
+    const detailsBankerWins = sideA === 'Banker' ? displayResult.detailsA_wins : displayResult.detailsB_wins;
+    const profitPlayerWins = sideA === 'Player' ? displayResult.profitA : displayResult.profitB;
+    const profitBankerWins = sideA === 'Banker' ? displayResult.profitA : displayResult.profitB;
+    const maxLines = Math.max(countLines(detailsPlayerWins), countLines(detailsBankerWins));
+    let title = solution.name;
+    if (!title) {
+        if(solution.target === 'equilibrium') title = 'Equilibrium';
+        else if(solution.target === 'breakevenA') title = `Breakeven at ${casinoNames.A}`;
+        else if(solution.target === 'breakevenB') title = `Breakeven at ${casinoNames.B}`;
+    }
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="w-full max-w-4xl p-6 bg-gray-800 border border-gray-700 rounded-lg text-white animate-fade-in relative" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white">&times;</button>
+                <h2 className="text-2xl font-bold mb-4 text-center text-white">{title} Strategy Details</h2>
+                <div className="flex rounded-lg overflow-hidden mb-6">
+                     <div className="w-1/2 bg-blue-900 bg-opacity-40 p-4 border-r-2 border-gray-700 flex flex-col"><h3 className="text-center font-bold text-xl text-blue-300">PLAYER</h3><div className="flex-grow flex flex-col justify-center -mt-2"><BetSizeDisplay casinoName={playerName} identifierClasses={playerIdentifierClasses} betAmount={playerBet} calculation={getBetCalculation(playerConfig, playerBet, solution)} /></div></div>
+                    <div className="w-1/2 bg-red-900 bg-opacity-40 p-4 flex flex-col"><h3 className="text-center font-bold text-xl text-red-300">BANKER</h3><div className="flex-grow flex flex-col justify-center -mt-2"><BetSizeDisplay casinoName={bankerName} identifierClasses={bankerIdentifierClasses} betAmount={bankerBet} calculation={getBetCalculation(bankerConfig, bankerBet, solution)} /></div></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ResultDetailColumn title={`If ${playerName}/Player Wins`} details={detailsPlayerWins} profit={profitPlayerWins} lineCount={maxLines} winningCasinoName={playerName} losingCasinoName={bankerName}/>
+                    <ResultDetailColumn title={`If ${bankerName}/Banker Wins`} details={detailsBankerWins} profit={profitBankerWins} lineCount={maxLines} winningCasinoName={bankerName} losingCasinoName={playerName}/>
+                </div>
+                <div className="mt-6 border-t border-gray-600 pt-4 space-y-2 text-xl">
+                    {displayResult.giftCardCost > 0 && (<div className="flex justify-between items-center"><p className="font-bold text-gray-400">Total Cost of Gift Cards:</p><p className="font-bold text-orange-400">${displayResult.giftCardCost.toFixed(2)}</p></div>)}
+                    {displayResult.totalCashback > 0 && (<div className="flex justify-between items-center"><p className="font-bold text-gray-400">Cashback Earned:</p><p className="font-bold text-green-400">+${displayResult.totalCashback.toFixed(2)}</p></div>)}
+                    <div className="flex justify-between items-center"><p className="font-bold text-gray-400">Total Deposited:</p><p className="font-bold text-orange-400">${(displayResult.totalCapital - displayResult.giftCardCost).toFixed(2)}</p></div>
+                    <div className="flex justify-between items-center"><p className="font-bold text-white">Minimum Withdrawn:</p><p className="font-bold text-white">${displayResult.minWithdrawal.toFixed(2)}</p></div>
+                    <div className="flex justify-between items-center"><p className="font-bold text-green-400">Minimum Profit:</p><p className="font-bold text-green-400">${Math.min(displayResult.profitA, displayResult.profitB).toFixed(2)}</p></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ResultsDisplay = ({ results, configs, casinoNames, expertMode, onExpertRowClick, activeDvL }) => {
+    if (!results) return null;
+    if (results.error && !results.expertSolutions) return <div className="mt-4 p-4 bg-orange-900 border border-orange-700 text-white rounded-lg">{results.error}</div>;
+    
+    const expertSolutions = results.isDvL 
+        ? (activeDvL === 'minCapital' ? results.expertSolutions_minCapital : results.expertSolutions_maxValue)
+        : results.expertSolutions;
+
+    const displayResult = results.isDvL ? results[activeDvL] : results;
+
+    if (!displayResult || displayResult.error || displayResult.noValidSolution) {
+        return (
+            <>
+              {expertMode && expertSolutions && expertSolutions.length > 0 && <ExpertResultsTable solutions={expertSolutions} optimalResult={displayResult} casinoNames={casinoNames} configA={configs[0].configA.rawConfig} configB={configs[0].configB.rawConfig} onRowClick={onExpertRowClick} />}
+              <div className="mt-4 p-4 bg-orange-900 border border-orange-700 text-white rounded-lg">{displayResult ? (displayResult.error || "No valid result to display for this view.") : "No valid result to display."}</div>
+            </>
+        )
+    }
+
+    const { configA, configB } = configs[results.optimalSidingIndex];
+    const playerConfig = configA.rawConfig.side === 'Player' ? configA.rawConfig : configB.rawConfig;
+    const bankerConfig = configA.rawConfig.side === 'Banker' ? configA.rawConfig : configB.rawConfig;
+    const playerBet = configA.rawConfig.side === 'Player' ? displayResult.betA : displayResult.betB;
+    const bankerBet = configA.rawConfig.side === 'Banker' ? displayResult.betA : displayResult.betB;
+    const playerName = configA.rawConfig.side === 'Player' ? casinoNames.A : casinoNames.B;
+    const bankerName = configA.rawConfig.side === 'Banker' ? casinoNames.A : casinoNames.B;
+    const playerIdentifierClasses = configA.rawConfig.side === 'Player' ? 'bg-white text-black' : 'bg-gray-600 text-white';
+    const bankerIdentifierClasses = configA.rawConfig.side === 'Banker' ? 'bg-white text-black' : 'bg-gray-600 text-white';
+    
+    const countLines = (details) => {
+        let count = 1;
+        if (details.totalWgReq > 0) { count += 2; if (details.postLiveWgReq > 0) count++; }
+        count++;
+        if (details.lossbackReceived > 0) count += 4;
+        return count;
+    };
+    const detailsPlayerWins = configA.rawConfig.side === 'Player' ? displayResult.detailsA_wins : displayResult.detailsB_wins;
+    const detailsBankerWins = configA.rawConfig.side === 'Banker' ? displayResult.detailsA_wins : displayResult.detailsB_wins;
+    const profitPlayerWins = configA.rawConfig.side === 'Player' ? displayResult.profitA : displayResult.profitB;
+    const profitBankerWins = configA.rawConfig.side === 'Banker' ? displayResult.profitA : displayResult.profitB;
+    const maxLines = Math.max(countLines(detailsPlayerWins), countLines(detailsBankerWins));
+    return (
+        <>
+            {expertMode && <ExpertResultsTable solutions={expertSolutions} optimalResult={displayResult} casinoNames={casinoNames} configA={configs[0].configA.rawConfig} configB={configs[0].configB.rawConfig} onRowClick={onExpertRowClick} />}
+            <div className="mt-6 p-6 bg-gray-800 rounded-lg text-white animate-fade-in">
+                 <h2 className="text-2xl font-bold mb-4 text-center text-white">Optimal Equilibrium Found</h2>
+                <div className="flex rounded-lg overflow-hidden mb-6">
+                    <div className="w-1/2 bg-blue-900 bg-opacity-40 p-4 border-r-2 border-gray-700 flex flex-col"><h3 className="text-center font-bold text-xl text-blue-300">PLAYER</h3><div className="flex-grow flex flex-col justify-center -mt-2"><BetSizeDisplay casinoName={playerName} identifierClasses={playerIdentifierClasses} betAmount={playerBet} calculation={getBetCalculation(playerConfig, playerBet, displayResult)} /></div></div>
+                    <div className="w-1/2 bg-red-900 bg-opacity-40 p-4 flex flex-col"><h3 className="text-center font-bold text-xl text-red-300">BANKER</h3><div className="flex-grow flex flex-col justify-center -mt-2"><BetSizeDisplay casinoName={bankerName} identifierClasses={bankerIdentifierClasses} betAmount={bankerBet} calculation={getBetCalculation(bankerConfig, bankerBet, displayResult)} /></div></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ResultDetailColumn title={`If ${playerName}/Player Wins`} details={detailsPlayerWins} profit={profitPlayerWins} lineCount={maxLines} winningCasinoName={playerName} losingCasinoName={bankerName}/>
+                    <ResultDetailColumn title={`If ${bankerName}/Banker Wins`} details={detailsBankerWins} profit={profitBankerWins} lineCount={maxLines} winningCasinoName={bankerName} losingCasinoName={playerName}/>
+                </div>
+                <div className="mt-6 border-t border-gray-600 pt-4 space-y-2 text-xl">
+                    {displayResult.giftCardCost > 0 && (<div className="flex justify-between items-center"><p className="font-bold text-gray-400">Total Cost of Gift Cards:</p><p className="font-bold text-orange-400">${displayResult.giftCardCost.toFixed(2)}</p></div>)}
+                    {displayResult.totalCashback > 0 && (<div className="flex justify-between items-center"><p className="font-bold text-gray-400">Cashback Earned:</p><p className="font-bold text-green-400">+${displayResult.totalCashback.toFixed(2)}</p></div>)}
+                    <div className="flex justify-between items-center"><p className="font-bold text-gray-400">Total Deposited:</p><p className="font-bold text-orange-400">${(displayResult.totalCapital - displayResult.giftCardCost).toFixed(2)}</p></div>
+                    <div className="flex justify-between items-center"><p className="font-bold text-white">Minimum Withdrawn:</p><p className="font-bold text-white">${displayResult.minWithdrawal.toFixed(2)}</p></div>
+                    <div className="flex justify-between items-center"><p className="font-bold text-green-400">Minimum Profit:</p><p className="font-bold text-green-400">${Math.min(displayResult.profitA, displayResult.profitB).toFixed(2)}</p></div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+function App() {
+    const [casinoNames, setCasinoNames] = React.useState({ A: 'Casino A', B: 'Casino B' });
+    const [configA, setConfigA] = React.useState({ type: 'deposit', params: { deposit: '', bonus: '', wager_req: '', basis: 'd+b', bonus_type: 'dollar', cashbackRate: '' } });
+    const [configB, setConfigB] = React.useState({ type: 'none', params: { cashbackRate: '' } });
+    const [results, setResults] = React.useState(null);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [activeDvL, setActiveDvL] = React.useState('minCapital');
+    const [isExpertMode, setIsExpertMode] = React.useState(false);
+    const [selectedSolution, setSelectedSolution] = React.useState(null);
+    const casinoAOptions = ['deposit', 'lossback', 'gift_card_betmgm'];
+    const casinoBOptions = ['none', 'deposit', 'lossback', 'gift_card_betmgm'];
+    const handleNameChange = (casinoId, newName) => { setCasinoNames(prev => ({ ...prev, [casinoId]: newName })); };
+    const calculateResults = () => {
+        if (configA.type === 'gift_card_betmgm' && configB.type === 'gift_card_betmgm') { return { error: "Arbitrage between two Gift Card bonuses is not recommended. Please select a different bonus for one casino." }; }
+        const isAutoGCvsNone = (configA.type === 'gift_card_betmgm' && !configA.params.card_count && configB.type === 'none') || (configB.type === 'gift_card_betmgm' && !configB.params.card_count && configA.type === 'none');
+        if (isAutoGCvsNone) { return { error: "You must specify a number of cards for this configuration." }; }
+        
+        const isDvL = (configA.type === 'deposit' && configB.type === 'lossback') || (configA.type === 'lossback' && configB.type === 'deposit');
+
+        if(isDvL) {
+             const resultSiding1 = findOptimalSolution(configA, configB);
+             const resultSiding2 = findOptimalSolution({...configA, side: 'Banker'}, {...configB, side: 'Player'});
+             let finalResult;
+             const minProfit1_minCap = resultSiding1.minCapital.error || resultSiding1.minCapital.noValidSolution ? -Infinity : Math.min(resultSiding1.minCapital.profitA, resultSiding1.minCapital.profitB);
+             const minProfit1_maxVal = resultSiding1.maxValue.error || resultSiding1.maxValue.noValidSolution ? -Infinity : Math.min(resultSiding1.maxValue.profitA, resultSiding1.maxValue.profitB);
+             const bestProfit1 = Math.max(minProfit1_minCap, minProfit1_maxVal);
+             const minProfit2_minCap = resultSiding2.minCapital.error || resultSiding2.minCapital.noValidSolution ? -Infinity : Math.min(resultSiding2.minCapital.profitA, resultSiding2.minCapital.profitB);
+             const minProfit2_maxVal = resultSiding2.maxValue.error || resultSiding2.maxValue.noValidSolution ? -Infinity : Math.min(resultSiding2.maxValue.profitA, resultSiding2.maxValue.profitB);
+             const bestProfit2 = Math.max(minProfit2_minCap, minProfit2_maxVal);
+
+            if (bestProfit1 >= bestProfit2) {
+                finalResult = {...resultSiding1, optimalSidingIndex: 0};
+                setActiveDvL(minProfit1_minCap >= minProfit1_maxVal ? 'minCapital' : 'maxValue');
+            } else {
+                finalResult = {...resultSiding2, optimalSidingIndex: 1};
+                setActiveDvL(minProfit2_minCap >= minProfit2_maxVal ? 'minCapital' : 'maxValue');
+            }
+
+            const expertSolutions_minCapital = findExpertSolutions(configA, configB, true);
+            const expertSolutions_maxValue = findExpertSolutions(configA, configB, false);
+
+            return { ...finalResult, expertSolutions_minCapital, expertSolutions_maxValue };
+        }
+
+        // Standard Calculation
+        const configSiding1 = { A: {...configA, side: 'Player'}, B: {...configB, side: 'Banker'} };
+        const result1 = findOptimalSolution(configSiding1.A, configSiding1.B);
+        const configSiding2 = { A: {...configA, side: 'Banker'}, B: {...configB, side: 'Player'} };
+        const result2 = findOptimalSolution(configSiding2.A, configSiding2.B);
+        let finalResult;
+       
+        const minProfit1 = result1.error || result1.noValidSolution ? -Infinity : Math.min(result1.profitA, result1.profitB);
+        const minProfit2 = result2.error || result2.noValidSolution ? -Infinity : Math.min(result2.profitA, result2.profitB);
+        if (minProfit1 >= minProfit2) { finalResult = {...result1, optimalSidingIndex: 0}; } 
+        else { finalResult = {...result2, optimalSidingIndex: 1}; }
+        
+        const bestMinProfit = finalResult.error || finalResult.noValidSolution ? -1 : Math.min(finalResult.profitA, finalResult.profitB);
+        if (bestMinProfit < 0 && !finalResult.error && !finalResult.noValidSolution) { return { error: "WARNING: It is not possible to guarantee a profit with this bonus combination. You should not attempt this arbitrage." }; }
+        if (finalResult.error || finalResult.noValidSolution) { return finalResult; }
+        
+        const expertSolutions = findExpertSolutions(configA, configB);
+        return { ...finalResult, expertSolutions };
+    };
+    const handleCalculate = () => {
+        setIsLoading(true); setResults(null); setSelectedSolution(null); 
+        setTimeout(() => {
+            try { const res = calculateResults(); setResults(res); } 
+            catch (e) { setResults({ error: `An unexpected error occurred: ${e.message}` }); console.error('Calculation error:', e); }
+            setIsLoading(false);
+        }, 50);
+    };
+    const displayConfigs = [
+        { configA: {rawConfig: {...configA, side: 'Player'}}, configB: {rawConfig: {...configB, side: 'Banker'}} },
+        { configA: {rawConfig: {...configA, side: 'Banker'}}, configB: {rawConfig: {...configB, side: 'Player'}} }
+    ];
+    return (
+        <div className="min-h-screen bg-black text-white font-sans p-4 md:p-8">
+            <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-8"><h1 className="text-4xl md:text-5xl font-bold text-gray-200">Baccarat Arbitrage Calculator</h1><p className="text-gray-400 mt-2">Find the optimal equilibrium for any bonus combination.</p></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><BonusInput casinoId="A" name={casinoNames.A} onNameChange={(newName) => handleNameChange('A', newName)} config={configA} setConfig={setConfigA} options={casinoAOptions} identifierClasses="bg-white text-black" /><BonusInput casinoId="B" name={casinoNames.B} onNameChange={(newName) => handleNameChange('B', newName)} config={configB} setConfig={setConfigB} options={casinoBOptions} identifierClasses="bg-gray-600 text-white" /></div>
+                <div className="mt-6 flex flex-col items-center justify-center space-y-4">
+                    <button onClick={handleCalculate} disabled={isLoading} className="w-full md:w-1/2 bg-white hover:bg-gray-200 text-gray-900 font-bold py-3 px-6 rounded-lg transition-all duration-300 disabled:bg-gray-600 flex items-center justify-center">{isLoading ? <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : 'Find Equilibrium'}</button>
+                    <div className="flex items-center"><label htmlFor="expert-toggle" className="text-sm text-gray-400 mr-3">Expert Mode</label><div onClick={() => setIsExpertMode(!isExpertMode)} className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer ${isExpertMode ? 'bg-green-500' : 'bg-gray-600'}`}><div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${isExpertMode ? 'translate-x-6' : ''}`}></div></div></div>
+                </div>
+                
+                {results && results.isDvL && (
+                    <div className="flex justify-center mt-6 border-b border-gray-600">
+                        <button onClick={() => setActiveDvL('minCapital')} className={`px-4 py-2 text-sm font-medium rounded-t-lg ${activeDvL === 'minCapital' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Minimum Capital</button>
+                        <button onClick={() => setActiveDvL('maxValue')} className={`px-4 py-2 text-sm font-medium rounded-t-lg ${activeDvL === 'maxValue' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Maximum Value</button>
+                    </div>
+                )}
+
+                {selectedSolution && (<MiniSolutionDisplay solution={selectedSolution} rawConfigA={configA} rawConfigB={configB} casinoNames={casinoNames} onClose={() => setSelectedSolution(null)}/>)}
+                {results && (<ResultsDisplay results={results} configs={displayConfigs} casinoNames={casinoNames} expertMode={isExpertMode} onExpertRowClick={(solution) => setSelectedSolution(solution)} activeDvL={activeDvL}/>)}
+            </div>
+        </div>
+    );
+}
+
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container);
+root.render(<App />);
+
+    </script>
+</body>
+</html>
